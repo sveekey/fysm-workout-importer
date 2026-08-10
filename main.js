@@ -167,6 +167,27 @@ function fieldValue(lines, label) {
 function cleanInline(value = "") {
   return String(value).replace(/\s+/g, " ").replace(/^\s*[🥌☀️🗿]\s*/u, "").trim();
 }
+function cleanClientName(value = "") {
+  const name = cleanInline(value).replace(/^[«“"']+|[»”"']+$/gu, "").replace(/[.,;]+$/gu, "").trim();
+  if (!name || name.length > 100 || /^(?:себе|self)$/iu.test(name)) return "";
+  return name;
+}
+function extractClientName(comment = "") {
+  const value = cleanInline(comment);
+  if (!value) return "";
+  const patterns = [
+    /(?:^|\|)\s*👤\s*(?:клиент(?:у|а)?\s*:\s*)?([^|]+?)\s*$/iu,
+    /^(?:🔮\s*)?Оракул\s+для\s*:\s*([^|:]+?)\s*$/iu,
+    /^(?:🍪\s*)?Пиифия\s+для\s+(.+?)\s*:/iu,
+    /(?:^|[|;])\s*(?:Клиент|Клиенту|Для\s+клиента)\s*:\s*([^|;]+)/iu
+  ];
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    const name = cleanClientName(match?.[1]);
+    if (name) return name;
+  }
+  return "";
+}
 function normalizeMode(value = "") {
   return cleanInline(value).replace(/[xXхХ]/g, "\u0445");
 }
@@ -272,6 +293,7 @@ function parseWorkoutText(rawText) {
   const onValue = fieldValue(lines, "ON");
   if (!metronome) throw new WorkoutParseError("\u041D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E \u043F\u043E\u043B\u0435 \xAB\u041C\u0435\u0442\u0440\u043E\u043D\u043E\u043C\xBB. \u0421\u043A\u043E\u043F\u0438\u0440\u0443\u0439\u0442\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0446\u0435\u043B\u0438\u043A\u043E\u043C.");
   if (!onValue) throw new WorkoutParseError("\u041D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E \u043F\u043E\u043B\u0435 \xABON\xBB. \u0421\u043A\u043E\u043F\u0438\u0440\u0443\u0439\u0442\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0446\u0435\u043B\u0438\u043A\u043E\u043C.");
+  const comment = cleanInline(fieldValue(lines, "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439"));
   const workout = {
     title: parseTitle(lines),
     date: date.match(/\d{4}-\d{2}-\d{2}/u)?.[0] || date,
@@ -280,7 +302,8 @@ function parseWorkoutText(rawText) {
     estimatedMinutes: parseEstimatedMinutes(text),
     warmup: parseWarmup(onValue),
     algorithms: parseAlgorithms(lines),
-    comment: cleanInline(fieldValue(lines, "\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439"))
+    comment,
+    client: extractClientName(comment)
   };
   workout.requiredMaterials = getRequiredMaterials(workout);
   return workout;
@@ -303,6 +326,7 @@ function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
     "---",
     `title: ${yamlString(workout.title)}`,
     workout.date ? `date: ${yamlString(workout.date)}` : "",
+    workout.client ? `client: ${yamlString(workout.client)}` : "",
     "source: FYSM Boy",
     "fysm_imported: true",
     "tags:",
@@ -314,6 +338,7 @@ function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
   ].filter((line) => line !== "");
   const meta = [];
   if (workout.date) meta.push(`- **\u0414\u0430\u0442\u0430:** ${workout.date}`);
+  if (workout.client) meta.push(`- **\u041A\u043B\u0438\u0435\u043D\u0442:** ${workout.client}`);
   if (workout.level) meta.push(`- **\u0423\u0440\u043E\u0432\u0435\u043D\u044C:** ${workout.level}`);
   if (workout.estimatedMinutes) meta.push(`- **\u0420\u0430\u0441\u0447\u0451\u0442\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F:** ~${workout.estimatedMinutes} \u043C\u0438\u043D`);
   meta.push(`- **\u041C\u0435\u0442\u0440\u043E\u043D\u043E\u043C:** ${workout.metronome}`);
@@ -444,6 +469,10 @@ function safeFileName(value = "") {
   const cleaned = String(value).replace(/[\\/:*?"<>|#[\]^]/g, " ").replace(/\s+/g, " ").trim();
   return cleaned.slice(0, 100) || "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 FYSM";
 }
+function safeFolderName(value = "") {
+  const cleaned = safeFileName(value).replace(/^\.+|\.+$/g, "").trim();
+  return cleaned && cleaned !== "." && cleaned !== ".." ? cleaned : "";
+}
 function getImportedFileExtension(file) {
   const fromName = String(file?.name || "").match(/\.([a-z0-9]+)$/iu)?.[1]?.toLocaleLowerCase("en") || "";
   const supported = /* @__PURE__ */ new Set(["png", "jpg", "jpeg", "webp", "gif", "pdf"]);
@@ -537,6 +566,12 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
       return;
     }
     this.resultEl.createEl("h3", { text: this.workout.title });
+    if (this.workout.client) {
+      this.resultEl.createDiv({
+        cls: "fysm-status fysm-status-success",
+        text: `\u041A\u043B\u0438\u0435\u043D\u0442: ${this.workout.client} \xB7 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 \u0431\u0443\u0434\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430 \u0432 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E \u043F\u043E\u0434\u043F\u0430\u043F\u043A\u0443.`
+      });
+    }
     const found = this.resolution.matches.size;
     const total = this.workout.requiredMaterials.length;
     this.resultEl.createDiv({
@@ -688,13 +723,15 @@ var FysmWorkoutImporterPlugin = class extends import_obsidian.Plugin {
   }
   async createWorkoutNote(workout, resolution) {
     const outputFolder = cleanFolderPath(this.settings.workoutsFolder, DEFAULT_SETTINGS.workoutsFolder);
-    await ensureFolder(this.app.vault, outputFolder);
+    const clientFolder = safeFolderName(workout.client);
+    const destinationFolder = clientFolder ? (0, import_obsidian.normalizePath)(`${outputFolder}/${clientFolder}`) : outputFolder;
+    await ensureFolder(this.app.vault, destinationFolder);
     const prefix = workout.date ? `${workout.date} \u2014 ` : "";
     const baseName = safeFileName(`${prefix}${workout.title}`);
-    let notePath = (0, import_obsidian.normalizePath)(`${outputFolder}/${baseName}.md`);
+    let notePath = (0, import_obsidian.normalizePath)(`${destinationFolder}/${baseName}.md`);
     let suffix = 2;
     while (this.app.vault.getAbstractFileByPath(notePath)) {
-      notePath = (0, import_obsidian.normalizePath)(`${outputFolder}/${baseName} (${suffix}).md`);
+      notePath = (0, import_obsidian.normalizePath)(`${destinationFolder}/${baseName} (${suffix}).md`);
       suffix += 1;
     }
     const markdown = buildWorkoutMarkdown(workout, resolution, (file2) => {

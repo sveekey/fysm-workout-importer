@@ -45,6 +45,34 @@ function cleanInline(value = "") {
     .trim();
 }
 
+function cleanClientName(value = "") {
+  const name = cleanInline(value)
+    .replace(/^[«“"']+|[»”"']+$/gu, "")
+    .replace(/[.,;]+$/gu, "")
+    .trim();
+  if (!name || name.length > 100 || /^(?:себе|self)$/iu.test(name)) return "";
+  return name;
+}
+
+export function extractClientName(comment = "") {
+  const value = cleanInline(comment);
+  if (!value) return "";
+
+  const patterns = [
+    /(?:^|\|)\s*👤\s*(?:клиент(?:у|а)?\s*:\s*)?([^|]+?)\s*$/iu,
+    /^(?:🔮\s*)?Оракул\s+для\s*:\s*([^|:]+?)\s*$/iu,
+    /^(?:🍪\s*)?Пиифия\s+для\s+(.+?)\s*:/iu,
+    /(?:^|[|;])\s*(?:Клиент|Клиенту|Для\s+клиента)\s*:\s*([^|;]+)/iu
+  ];
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    const name = cleanClientName(match?.[1]);
+    if (name) return name;
+  }
+  return "";
+}
+
 function normalizeMode(value = "") {
   return cleanInline(value).replace(/[xXхХ]/g, "х");
 }
@@ -191,6 +219,7 @@ export function parseWorkoutText(rawText) {
   if (!metronome) throw new WorkoutParseError("Не найдено поле «Метроном». Скопируйте сообщение тренировки целиком.");
   if (!onValue) throw new WorkoutParseError("Не найдено поле «ON». Скопируйте сообщение тренировки целиком.");
 
+  const comment = cleanInline(fieldValue(lines, "Комментарий"));
   const workout = {
     title: parseTitle(lines),
     date: date.match(/\d{4}-\d{2}-\d{2}/u)?.[0] || date,
@@ -199,7 +228,8 @@ export function parseWorkoutText(rawText) {
     estimatedMinutes: parseEstimatedMinutes(text),
     warmup: parseWarmup(onValue),
     algorithms: parseAlgorithms(lines),
-    comment: cleanInline(fieldValue(lines, "Комментарий"))
+    comment,
+    client: extractClientName(comment)
   };
   workout.requiredMaterials = getRequiredMaterials(workout);
   return workout;

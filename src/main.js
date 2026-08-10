@@ -30,6 +30,11 @@ function safeFileName(value = "") {
   return cleaned.slice(0, 100) || "Тренировка FYSM";
 }
 
+function safeFolderName(value = "") {
+  const cleaned = safeFileName(value).replace(/^\.+|\.+$/g, "").trim();
+  return cleaned && cleaned !== "." && cleaned !== ".." ? cleaned : "";
+}
+
 function getImportedFileExtension(file) {
   const fromName = String(file?.name || "").match(/\.([a-z0-9]+)$/iu)?.[1]?.toLocaleLowerCase("en") || "";
   const supported = new Set(["png", "jpg", "jpeg", "webp", "gif", "pdf"]);
@@ -139,6 +144,12 @@ class WorkoutImportModal extends Modal {
     }
 
     this.resultEl.createEl("h3", { text: this.workout.title });
+    if (this.workout.client) {
+      this.resultEl.createDiv({
+        cls: "fysm-status fysm-status-success",
+        text: `Клиент: ${this.workout.client} · тренировка будет сохранена в отдельную подпапку.`
+      });
+    }
     const found = this.resolution.matches.size;
     const total = this.workout.requiredMaterials.length;
     this.resultEl.createDiv({
@@ -349,14 +360,18 @@ export default class FysmWorkoutImporterPlugin extends Plugin {
 
   async createWorkoutNote(workout, resolution) {
     const outputFolder = cleanFolderPath(this.settings.workoutsFolder, DEFAULT_SETTINGS.workoutsFolder);
-    await ensureFolder(this.app.vault, outputFolder);
+    const clientFolder = safeFolderName(workout.client);
+    const destinationFolder = clientFolder
+      ? normalizePath(`${outputFolder}/${clientFolder}`)
+      : outputFolder;
+    await ensureFolder(this.app.vault, destinationFolder);
 
     const prefix = workout.date ? `${workout.date} — ` : "";
     const baseName = safeFileName(`${prefix}${workout.title}`);
-    let notePath = normalizePath(`${outputFolder}/${baseName}.md`);
+    let notePath = normalizePath(`${destinationFolder}/${baseName}.md`);
     let suffix = 2;
     while (this.app.vault.getAbstractFileByPath(notePath)) {
-      notePath = normalizePath(`${outputFolder}/${baseName} (${suffix}).md`);
+      notePath = normalizePath(`${destinationFolder}/${baseName} (${suffix}).md`);
       suffix += 1;
     }
 

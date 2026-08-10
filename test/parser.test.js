@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseWorkoutText } from "../src/parser.js";
+import { extractClientName, parseWorkoutText } from "../src/parser.js";
 
 test("parses a generated workout with ZERO and algorithms", () => {
   const workout = parseWorkoutText(`
@@ -72,4 +72,17 @@ test("rejects an unrelated clipboard value", () => {
     () => parseWorkoutText("Просто сообщение из Telegram"),
     /Метроном/u
   );
+});
+
+test("extracts an explicitly marked client from known bot comments", () => {
+  assert.equal(extractClientName("🔮 Оракул для: Анна"), "Анна");
+  assert.equal(extractClientName("🍪 Пиифия для Мария Иванова: мягкая практика"), "Мария Иванова");
+  assert.equal(extractClientName('🗂 Курс "Баланс" | by trainer | 👤 Леся'), "Леся");
+  assert.equal(extractClientName("Клиент: Юлия | восстановление"), "Юлия");
+  assert.equal(extractClientName("Для клиента: Олег"), "Олег");
+});
+
+test("does not turn an ordinary comment into a client folder", () => {
+  assert.equal(extractClientName("Мягкая практика для спины клиента"), "");
+  assert.equal(extractClientName("Себе"), "");
 });

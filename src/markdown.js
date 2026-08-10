@@ -16,6 +16,7 @@ export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
     "---",
     `title: ${yamlString(workout.title)}`,
     workout.date ? `date: ${yamlString(workout.date)}` : "",
+    workout.client ? `client: ${yamlString(workout.client)}` : "",
     "source: FYSM Boy",
     "fysm_imported: true",
     "tags:",
@@ -28,6 +29,7 @@ export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
 
   const meta = [];
   if (workout.date) meta.push(`- **Дата:** ${workout.date}`);
+  if (workout.client) meta.push(`- **Клиент:** ${workout.client}`);
   if (workout.level) meta.push(`- **Уровень:** ${workout.level}`);
   if (workout.estimatedMinutes) meta.push(`- **Расчётное время:** ~${workout.estimatedMinutes} мин`);
   meta.push(`- **Метроном:** ${workout.metronome}`);

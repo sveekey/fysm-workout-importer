@@ -42,3 +42,22 @@ test("marks a missing local scheme without failing note generation", () => {
   assert.match(markdown, /> \[!warning\] Схема не найдена/u);
   assert.match(markdown, /ON 10/u);
 });
+
+test("adds an explicitly detected client to note metadata", () => {
+  const workout = parseWorkoutText(`
+«Клиентская тренировка»
+• Дата: 2026-08-10
+• Уровень: Base
+• Метроном: 20
+• ON: Статика на 8 кругов
+• Алгоритмы: нет
+• Комментарий: Клиент: Анна
+  `);
+  const markdown = buildWorkoutMarkdown(workout, {
+    matches: new Map(),
+    missing: workout.requiredMaterials
+  }, file => `![[${file.path}]]`);
+
+  assert.match(markdown, /client: "Анна"/u);
+  assert.match(markdown, /\*\*Клиент:\*\* Анна/u);
+});
