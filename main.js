@@ -321,6 +321,14 @@ function materialBlock(requirement, match, makeEmbed) {
 function findRequirement(workout, kind, displayName) {
   return workout.requiredMaterials.find((item) => item.kind === kind && item.displayName === displayName);
 }
+function warmupSummary(warmup) {
+  const repetitions = warmup.repetitions ? ` \u2014 ${warmup.repetitions}` : "";
+  if (warmup.type === "zero") {
+    const sequence = warmup.sequence.length ? warmup.sequence.map((number) => `ZERO ${number}`).join(", ") : "ZERO";
+    return `${sequence}${repetitions}`;
+  }
+  return `${warmup.name}${repetitions}`;
+}
 function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
   const lines = [
     "---",
@@ -342,6 +350,16 @@ function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
   if (workout.level) meta.push(`- **\u0423\u0440\u043E\u0432\u0435\u043D\u044C:** ${workout.level}`);
   if (workout.estimatedMinutes) meta.push(`- **\u0420\u0430\u0441\u0447\u0451\u0442\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F:** ~${workout.estimatedMinutes} \u043C\u0438\u043D`);
   meta.push(`- **\u041C\u0435\u0442\u0440\u043E\u043D\u043E\u043C:** ${workout.metronome}`);
+  meta.push(`- **\u0412\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435:** ${warmupSummary(workout.warmup)}`);
+  if (workout.algorithms.length) {
+    meta.push("- **\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B:**");
+    workout.algorithms.forEach((algorithm, index) => {
+      const details = [algorithm.set, algorithm.mode].filter(Boolean).join(" \xB7 ");
+      meta.push(`    ${index + 1}. **${algorithm.name}**${details ? ` \u2014 ${details}` : ""}`);
+    });
+  } else {
+    meta.push("- **\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B:** \u043D\u0435\u0442");
+  }
   lines.push(...meta, "", "## ON", "");
   if (workout.warmup.type === "zero") {
     lines.push(`**ZERO**${workout.warmup.repetitions ? ` \u2014 ${workout.warmup.repetitions}` : ""}`, "");

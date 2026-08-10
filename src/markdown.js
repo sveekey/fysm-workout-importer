@@ -11,6 +11,17 @@ function findRequirement(workout, kind, displayName) {
   return workout.requiredMaterials.find(item => item.kind === kind && item.displayName === displayName);
 }
 
+function warmupSummary(warmup) {
+  const repetitions = warmup.repetitions ? ` — ${warmup.repetitions}` : "";
+  if (warmup.type === "zero") {
+    const sequence = warmup.sequence.length
+      ? warmup.sequence.map(number => `ZERO ${number}`).join(", ")
+      : "ZERO";
+    return `${sequence}${repetitions}`;
+  }
+  return `${warmup.name}${repetitions}`;
+}
+
 export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
   const lines = [
     "---",
@@ -33,6 +44,16 @@ export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
   if (workout.level) meta.push(`- **Уровень:** ${workout.level}`);
   if (workout.estimatedMinutes) meta.push(`- **Расчётное время:** ~${workout.estimatedMinutes} мин`);
   meta.push(`- **Метроном:** ${workout.metronome}`);
+  meta.push(`- **Включение:** ${warmupSummary(workout.warmup)}`);
+  if (workout.algorithms.length) {
+    meta.push("- **Алгоритмы:**");
+    workout.algorithms.forEach((algorithm, index) => {
+      const details = [algorithm.set, algorithm.mode].filter(Boolean).join(" · ");
+      meta.push(`    ${index + 1}. **${algorithm.name}**${details ? ` — ${details}` : ""}`);
+    });
+  } else {
+    meta.push("- **Алгоритмы:** нет");
+  }
   lines.push(...meta, "", "## ON", "");
 
   if (workout.warmup.type === "zero") {
