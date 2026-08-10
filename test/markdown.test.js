@@ -22,8 +22,9 @@ test("builds a local note with embeds and no source URLs", () => {
   }
 
   const markdown = buildWorkoutMarkdown(workout, resolution, file => `![[${file.path}]]`);
-  assert.match(markdown, /- \*\*Включение:\*\* ZERO 12 — 8/u);
-  assert.match(markdown, /- \*\*Алгоритмы:\*\*\n    1\. \*\*Струна\*\* — FYSM 1 · 3х5/u);
+  assert.match(markdown, /\*\*«Локальная тренировка»\*\*/u);
+  assert.match(markdown, /• \*\*ON\*\*: 🥌 \*\*ZERO\*\* \( 12 \) на \*\*8\*\*/u);
+  assert.match(markdown, /• \*\*Алгоритмы\*\*:\n1\) 1️⃣ \*\*Струна\*\* — \*\*3х5\*\*/u);
   assert.match(markdown, /!\[\[FYSM\/Методички\/ZERO 12\.png\]\]/u);
   assert.match(markdown, /!\[\[FYSM\/Методички\/Струна\.png\]\]/u);
   assert.doesNotMatch(markdown, /https?:\/\//u);
@@ -43,7 +44,7 @@ test("marks a missing local scheme without failing note generation", () => {
 
   assert.match(markdown, /> \[!warning\] Схема не найдена/u);
   assert.match(markdown, /ON 10/u);
-  assert.match(markdown, /- \*\*Алгоритмы:\*\* нет/u);
+  assert.match(markdown, /• \*\*Алгоритмы\*\*: нет/u);
 });
 
 test("adds an explicitly detected client to note metadata", () => {
@@ -62,5 +63,5 @@ test("adds an explicitly detected client to note metadata", () => {
   }, file => `![[${file.path}]]`);
 
   assert.match(markdown, /client: "Анна"/u);
-  assert.match(markdown, /\*\*Клиент:\*\* Анна/u);
+  assert.match(markdown, /\*\*Клиент\*\*: Анна/u);
 });

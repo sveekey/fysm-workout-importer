@@ -77,6 +77,13 @@ function normalizeMode(value = "") {
   return cleanInline(value).replace(/[xXхХ]/g, "х");
 }
 
+function normalizeZone(value = "") {
+  if (value === "🔼" || value === "⬆️") return "🔼";
+  if (value === "🔽" || value === "⬇️") return "🔽";
+  if (value === "⏺️") return "⏺️";
+  return "";
+}
+
 function parseTitle(lines) {
   for (const rawLine of lines.slice(0, 12)) {
     const line = rawLine.trim();
@@ -151,6 +158,8 @@ function parseAlgorithms(lines) {
     else if (left.includes("3️⃣")) set = "FYSM 3";
     else if (left.includes("⏺️")) set = "LITE";
 
+    const zone = normalizeZone(left.match(/🔼|🔽|⏺️|⬆️|⬇️/u)?.[0]);
+
     const name = left
       .replace(/^(?:1️⃣|2️⃣|3️⃣|⏺️)\s*/u, "")
       .replace(/\s*(?:🔼|🔽|⏺️|⬆️|⬇️)\s*$/u, "")
@@ -162,7 +171,8 @@ function parseAlgorithms(lines) {
         index: Number.parseInt(match[1], 10),
         name,
         set: catalogSet || set,
-        mode: normalizeMode(match[3])
+        mode: normalizeMode(match[3]),
+        ...(zone ? { zone } : {})
       });
     }
   }

@@ -11,15 +11,26 @@ function findRequirement(workout, kind, displayName) {
   return workout.requiredMaterials.find(item => item.kind === kind && item.displayName === displayName);
 }
 
-function warmupSummary(warmup) {
-  const repetitions = warmup.repetitions ? ` — ${warmup.repetitions}` : "";
+function setEmoji(set = "") {
+  return {
+    "FYSM 1": "1️⃣",
+    "FYSM 2": "2️⃣",
+    "FYSM 3": "3️⃣",
+    LITE: "⏺️"
+  }[set] || "";
+}
+
+function warmupCardLine(warmup) {
+  const repetitions = warmup.repetitions ? ` на **${warmup.repetitions}**` : "";
   if (warmup.type === "zero") {
-    const sequence = warmup.sequence.length
-      ? warmup.sequence.map(number => `ZERO ${number}`).join(", ")
-      : "ZERO";
-    return `${sequence}${repetitions}`;
+    const sequence = warmup.sequence.length ? ` ( ${warmup.sequence.join(", ")} )` : "";
+    return `🥌 **ZERO**${sequence}${repetitions}`;
   }
-  return `${warmup.name}${repetitions}`;
+  const icon = warmup.type === "surya" ? "☀️" : "🗿";
+  const rounds = warmup.type === "static" || warmup.type === "surya"
+    ? warmup.repetitions ? " кругов" : ""
+    : "";
+  return `${icon} **${warmup.name}**${repetitions}${rounds}`;
 }
 
 export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
@@ -34,25 +45,25 @@ export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
     "  - fysm/training",
     "---",
     "",
-    `# ${workout.title}`,
+    `**«${workout.title}»**`,
     ""
   ].filter(line => line !== "");
 
   const meta = [];
-  if (workout.date) meta.push(`- **Дата:** ${workout.date}`);
-  if (workout.client) meta.push(`- **Клиент:** ${workout.client}`);
-  if (workout.level) meta.push(`- **Уровень:** ${workout.level}`);
-  if (workout.estimatedMinutes) meta.push(`- **Расчётное время:** ~${workout.estimatedMinutes} мин`);
-  meta.push(`- **Метроном:** ${workout.metronome}`);
-  meta.push(`- **Включение:** ${warmupSummary(workout.warmup)}`);
+  if (workout.date) meta.push(`• **Дата**: ${workout.date}`);
+  if (workout.client) meta.push(`• **Клиент**: ${workout.client}`);
+  if (workout.level) meta.push(`• **Уровень**: ${workout.level}`);
+  if (workout.estimatedMinutes) meta.push(`• **Расчетное время:** **⏱** ~${workout.estimatedMinutes} мин`);
+  meta.push(`• **Метроном**: ${workout.metronome}`);
+  meta.push(`• **ON**: ${warmupCardLine(workout.warmup)}`);
   if (workout.algorithms.length) {
-    meta.push("- **Алгоритмы:**");
+    meta.push("• **Алгоритмы**:");
     workout.algorithms.forEach((algorithm, index) => {
-      const details = [algorithm.set, algorithm.mode].filter(Boolean).join(" · ");
-      meta.push(`    ${index + 1}. **${algorithm.name}**${details ? ` — ${details}` : ""}`);
+      const prefix = [setEmoji(algorithm.set), `**${algorithm.name}**`, algorithm.zone].filter(Boolean).join(" ");
+      meta.push(`${index + 1}) ${prefix}${algorithm.mode ? ` — **${algorithm.mode}**` : ""}`);
     });
   } else {
-    meta.push("- **Алгоритмы:** нет");
+    meta.push("• **Алгоритмы**: нет");
   }
   lines.push(...meta, "", "## ON", "");
 

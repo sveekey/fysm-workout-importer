@@ -191,6 +191,12 @@ function extractClientName(comment = "") {
 function normalizeMode(value = "") {
   return cleanInline(value).replace(/[xXхХ]/g, "\u0445");
 }
+function normalizeZone(value = "") {
+  if (value === "\u{1F53C}" || value === "\u2B06\uFE0F") return "\u{1F53C}";
+  if (value === "\u{1F53D}" || value === "\u2B07\uFE0F") return "\u{1F53D}";
+  if (value === "\u23FA\uFE0F") return "\u23FA\uFE0F";
+  return "";
+}
 function parseTitle(lines) {
   for (const rawLine of lines.slice(0, 12)) {
     const line = rawLine.trim();
@@ -245,6 +251,7 @@ function parseAlgorithms(lines) {
     else if (left.includes("2\uFE0F\u20E3")) set = "FYSM 2";
     else if (left.includes("3\uFE0F\u20E3")) set = "FYSM 3";
     else if (left.includes("\u23FA\uFE0F")) set = "LITE";
+    const zone = normalizeZone(left.match(/🔼|🔽|⏺️|⬆️|⬇️/u)?.[0]);
     const name = left.replace(/^(?:1️⃣|2️⃣|3️⃣|⏺️)\s*/u, "").replace(/\s*(?:🔼|🔽|⏺️|⬆️|⬇️)\s*$/u, "").trim();
     if (name) {
       const catalogSet = findAlgorithmSet(name);
@@ -252,7 +259,8 @@ function parseAlgorithms(lines) {
         index: Number.parseInt(match[1], 10),
         name,
         set: catalogSet || set,
-        mode: normalizeMode(match[3])
+        mode: normalizeMode(match[3]),
+        ...zone ? { zone } : {}
       });
     }
   }
@@ -321,13 +329,23 @@ function materialBlock(requirement, match, makeEmbed) {
 function findRequirement(workout, kind, displayName) {
   return workout.requiredMaterials.find((item) => item.kind === kind && item.displayName === displayName);
 }
-function warmupSummary(warmup) {
-  const repetitions = warmup.repetitions ? ` \u2014 ${warmup.repetitions}` : "";
+function setEmoji(set = "") {
+  return {
+    "FYSM 1": "1\uFE0F\u20E3",
+    "FYSM 2": "2\uFE0F\u20E3",
+    "FYSM 3": "3\uFE0F\u20E3",
+    LITE: "\u23FA\uFE0F"
+  }[set] || "";
+}
+function warmupCardLine(warmup) {
+  const repetitions = warmup.repetitions ? ` \u043D\u0430 **${warmup.repetitions}**` : "";
   if (warmup.type === "zero") {
-    const sequence = warmup.sequence.length ? warmup.sequence.map((number) => `ZERO ${number}`).join(", ") : "ZERO";
-    return `${sequence}${repetitions}`;
+    const sequence = warmup.sequence.length ? ` ( ${warmup.sequence.join(", ")} )` : "";
+    return `\u{1F94C} **ZERO**${sequence}${repetitions}`;
   }
-  return `${warmup.name}${repetitions}`;
+  const icon = warmup.type === "surya" ? "\u2600\uFE0F" : "\u{1F5FF}";
+  const rounds = warmup.type === "static" || warmup.type === "surya" ? warmup.repetitions ? " \u043A\u0440\u0443\u0433\u043E\u0432" : "" : "";
+  return `${icon} **${warmup.name}**${repetitions}${rounds}`;
 }
 function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
   const lines = [
@@ -341,24 +359,24 @@ function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
     "  - fysm/training",
     "---",
     "",
-    `# ${workout.title}`,
+    `**\xAB${workout.title}\xBB**`,
     ""
   ].filter((line) => line !== "");
   const meta = [];
-  if (workout.date) meta.push(`- **\u0414\u0430\u0442\u0430:** ${workout.date}`);
-  if (workout.client) meta.push(`- **\u041A\u043B\u0438\u0435\u043D\u0442:** ${workout.client}`);
-  if (workout.level) meta.push(`- **\u0423\u0440\u043E\u0432\u0435\u043D\u044C:** ${workout.level}`);
-  if (workout.estimatedMinutes) meta.push(`- **\u0420\u0430\u0441\u0447\u0451\u0442\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F:** ~${workout.estimatedMinutes} \u043C\u0438\u043D`);
-  meta.push(`- **\u041C\u0435\u0442\u0440\u043E\u043D\u043E\u043C:** ${workout.metronome}`);
-  meta.push(`- **\u0412\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435:** ${warmupSummary(workout.warmup)}`);
+  if (workout.date) meta.push(`\u2022 **\u0414\u0430\u0442\u0430**: ${workout.date}`);
+  if (workout.client) meta.push(`\u2022 **\u041A\u043B\u0438\u0435\u043D\u0442**: ${workout.client}`);
+  if (workout.level) meta.push(`\u2022 **\u0423\u0440\u043E\u0432\u0435\u043D\u044C**: ${workout.level}`);
+  if (workout.estimatedMinutes) meta.push(`\u2022 **\u0420\u0430\u0441\u0447\u0435\u0442\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F:** **\u23F1** ~${workout.estimatedMinutes} \u043C\u0438\u043D`);
+  meta.push(`\u2022 **\u041C\u0435\u0442\u0440\u043E\u043D\u043E\u043C**: ${workout.metronome}`);
+  meta.push(`\u2022 **ON**: ${warmupCardLine(workout.warmup)}`);
   if (workout.algorithms.length) {
-    meta.push("- **\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B:**");
+    meta.push("\u2022 **\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B**:");
     workout.algorithms.forEach((algorithm, index) => {
-      const details = [algorithm.set, algorithm.mode].filter(Boolean).join(" \xB7 ");
-      meta.push(`    ${index + 1}. **${algorithm.name}**${details ? ` \u2014 ${details}` : ""}`);
+      const prefix = [setEmoji(algorithm.set), `**${algorithm.name}**`, algorithm.zone].filter(Boolean).join(" ");
+      meta.push(`${index + 1}) ${prefix}${algorithm.mode ? ` \u2014 **${algorithm.mode}**` : ""}`);
     });
   } else {
-    meta.push("- **\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B:** \u043D\u0435\u0442");
+    meta.push("\u2022 **\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B**: \u043D\u0435\u0442");
   }
   lines.push(...meta, "", "## ON", "");
   if (workout.warmup.type === "zero") {

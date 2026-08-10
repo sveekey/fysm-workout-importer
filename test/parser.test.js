@@ -27,8 +27,8 @@ test("parses a generated workout with ZERO and algorithms", () => {
   assert.deepEqual(workout.warmup.sequence, [8, 12]);
   assert.equal(workout.warmup.repetitions, "4х4");
   assert.deepEqual(workout.algorithms, [
-    { index: 1, name: "Струна", set: "FYSM 1", mode: "3х5" },
-    { index: 2, name: "Активация центра", set: "FYSM 2", mode: "40 секунд" }
+    { index: 1, name: "Струна", set: "FYSM 1", mode: "3х5", zone: "🔼" },
+    { index: 2, name: "Активация центра", set: "FYSM 2", mode: "40 секунд", zone: "🔽" }
   ]);
   assert.deepEqual(workout.requiredMaterials.map(item => item.displayName), ["ZERO 8", "ZERO 12", "Струна", "Активация центра"]);
 });
