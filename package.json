@@ -1,0 +1,14 @@
+{
+  "name": "fysm-workout-importer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-only Obsidian importer for FYSM workout text copied from Telegram.",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

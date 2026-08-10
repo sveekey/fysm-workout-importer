@@ -1,0 +1,52 @@
+.fysm-import-modal {
+  max-width: 760px;
+}
+
+.fysm-import-textarea {
+  box-sizing: border-box;
+  min-height: 260px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 10px;
+  resize: vertical;
+  font-family: var(--font-monospace);
+}
+
+.fysm-import-results {
+  margin-top: 14px;
+}
+
+.fysm-status {
+  margin: 8px 0 12px;
+  padding: 9px 11px;
+  border-radius: var(--radius-s);
+}
+
+.fysm-status-success {
+  background: rgba(var(--color-green-rgb), 0.15);
+}
+
+.fysm-status-warning {
+  background: rgba(var(--color-yellow-rgb), 0.15);
+}
+
+.fysm-status-error {
+  background: rgba(var(--color-red-rgb), 0.15);
+}
+
+.fysm-material-wizard {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+}
+
+.fysm-material-progress {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.fysm-hidden-file-input {
+  display: none;
+}
