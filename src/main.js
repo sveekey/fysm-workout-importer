@@ -106,6 +106,14 @@ class WorkoutImportModal extends Modal {
       text: "Вставьте целиком сообщение сформированной тренировки из Telegram. Обработка выполняется только внутри этого хранилища."
     });
 
+    const checkSetting = new Setting(contentEl)
+      .setDesc("После вставки текста нажмите кнопку — материалы будут найдены до создания заметки.")
+      .addButton(button => button
+        .setButtonText("Проверить материалы")
+        .setCta()
+        .onClick(() => this.preview()));
+    checkSetting.settingEl.addClass("fysm-import-primary-action");
+
     const textArea = contentEl.createEl("textarea", {
       cls: "fysm-import-textarea",
       attr: { placeholder: "Вставьте сообщение тренировки…" }
@@ -119,12 +127,6 @@ class WorkoutImportModal extends Modal {
       this.createSetting?.settingEl.remove();
       this.createSetting = null;
     });
-
-    new Setting(contentEl)
-      .addButton(button => button
-        .setButtonText("Проверить материалы")
-        .setCta()
-        .onClick(() => this.preview()));
 
     this.resultEl = contentEl.createDiv({ cls: "fysm-import-results" });
     if (this.inputText.trim()) this.preview();

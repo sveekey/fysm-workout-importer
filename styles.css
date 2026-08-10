@@ -12,6 +12,10 @@
   font-family: var(--font-monospace);
 }
 
+.fysm-import-primary-action {
+  margin: 8px 0 12px;
+}
+
 .fysm-import-results {
   margin-top: 14px;
 }
