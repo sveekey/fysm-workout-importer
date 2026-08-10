@@ -67,10 +67,20 @@ test("does not require a material for plain static warmup or FYSM LITE", () => {
   assert.deepEqual(workout.requiredMaterials, []);
 });
 
+test("uses 20 as the metronome default when the field is absent", () => {
+  const workout = parseWorkoutText(`
+«Без метронома»
+• ON: Статика на 8 кругов
+• Алгоритмы: нет
+  `);
+
+  assert.equal(workout.metronome, "20");
+});
+
 test("rejects an unrelated clipboard value", () => {
   assert.throws(
     () => parseWorkoutText("Просто сообщение из Telegram"),
-    /Метроном/u
+    /ON/u
   );
 });
 

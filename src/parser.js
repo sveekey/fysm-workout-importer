@@ -223,10 +223,9 @@ export function parseWorkoutText(rawText) {
 
   const lines = text.split("\n").map(line => line.trimEnd());
   const date = fieldValue(lines, "Дата");
-  const metronome = fieldValue(lines, "Метроном");
+  const metronome = fieldValue(lines, "Метроном") || "20";
   const onValue = fieldValue(lines, "ON");
 
-  if (!metronome) throw new WorkoutParseError("Не найдено поле «Метроном». Скопируйте сообщение тренировки целиком.");
   if (!onValue) throw new WorkoutParseError("Не найдено поле «ON». Скопируйте сообщение тренировки целиком.");
 
   const comment = cleanInline(fieldValue(lines, "Комментарий"));
