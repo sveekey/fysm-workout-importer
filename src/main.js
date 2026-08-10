@@ -144,12 +144,11 @@ class WorkoutImportModal extends Modal {
     }
 
     this.resultEl.createEl("h3", { text: this.workout.title });
-    if (this.workout.client) {
-      this.resultEl.createDiv({
-        cls: "fysm-status fysm-status-success",
-        text: `Клиент: ${this.workout.client} · тренировка будет сохранена в отдельную подпапку.`
-      });
-    }
+    const ownerName = this.workout.client || "Себе";
+    this.resultEl.createDiv({
+      cls: "fysm-status fysm-status-success",
+      text: `${this.workout.client ? `Клиент: ${ownerName}` : "Себе"} · тренировка будет сохранена в папку «${ownerName}».`
+    });
     const found = this.resolution.matches.size;
     const total = this.workout.requiredMaterials.length;
     this.resultEl.createDiv({
@@ -360,10 +359,8 @@ export default class FysmWorkoutImporterPlugin extends Plugin {
 
   async createWorkoutNote(workout, resolution) {
     const outputFolder = cleanFolderPath(this.settings.workoutsFolder, DEFAULT_SETTINGS.workoutsFolder);
-    const clientFolder = safeFolderName(workout.client);
-    const destinationFolder = clientFolder
-      ? normalizePath(`${outputFolder}/${clientFolder}`)
-      : outputFolder;
+    const ownerFolder = safeFolderName(workout.client) || "Себе";
+    const destinationFolder = normalizePath(`${outputFolder}/${ownerFolder}`);
     await ensureFolder(this.app.vault, destinationFolder);
 
     const prefix = workout.date ? `${workout.date} — ` : "";

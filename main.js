@@ -602,12 +602,11 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
       return;
     }
     this.resultEl.createEl("h3", { text: this.workout.title });
-    if (this.workout.client) {
-      this.resultEl.createDiv({
-        cls: "fysm-status fysm-status-success",
-        text: `\u041A\u043B\u0438\u0435\u043D\u0442: ${this.workout.client} \xB7 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 \u0431\u0443\u0434\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430 \u0432 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E \u043F\u043E\u0434\u043F\u0430\u043F\u043A\u0443.`
-      });
-    }
+    const ownerName = this.workout.client || "\u0421\u0435\u0431\u0435";
+    this.resultEl.createDiv({
+      cls: "fysm-status fysm-status-success",
+      text: `${this.workout.client ? `\u041A\u043B\u0438\u0435\u043D\u0442: ${ownerName}` : "\u0421\u0435\u0431\u0435"} \xB7 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 \u0431\u0443\u0434\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430 \u0432 \u043F\u0430\u043F\u043A\u0443 \xAB${ownerName}\xBB.`
+    });
     const found = this.resolution.matches.size;
     const total = this.workout.requiredMaterials.length;
     this.resultEl.createDiv({
@@ -759,8 +758,8 @@ var FysmWorkoutImporterPlugin = class extends import_obsidian.Plugin {
   }
   async createWorkoutNote(workout, resolution) {
     const outputFolder = cleanFolderPath(this.settings.workoutsFolder, DEFAULT_SETTINGS.workoutsFolder);
-    const clientFolder = safeFolderName(workout.client);
-    const destinationFolder = clientFolder ? (0, import_obsidian.normalizePath)(`${outputFolder}/${clientFolder}`) : outputFolder;
+    const ownerFolder = safeFolderName(workout.client) || "\u0421\u0435\u0431\u0435";
+    const destinationFolder = (0, import_obsidian.normalizePath)(`${outputFolder}/${ownerFolder}`);
     await ensureFolder(this.app.vault, destinationFolder);
     const prefix = workout.date ? `${workout.date} \u2014 ` : "";
     const baseName = safeFileName(`${prefix}${workout.title}`);
