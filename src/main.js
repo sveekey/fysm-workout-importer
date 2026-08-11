@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS = {
   materialMap: {}
 };
 
-const PLUGIN_VERSION = "0.10.0-beta.1";
+const PLUGIN_VERSION = "0.10.0-beta.2";
 
 function cleanFolderPath(value, fallback) {
   const normalized = normalizePath(String(value || "").trim().replace(/^\/+|\/+$/g, ""));
@@ -394,12 +394,12 @@ class WorkoutImportModal extends Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.addClass("yoga-import-modal");
-    contentEl.createEl("h2", { text: this.options.handoff ? "Предпросмотр тренировки" : "Собрать тренировку Yoga" });
-    contentEl.createEl("p", {
-      text: this.options.handoff
-        ? "Состав тренировки получен из Telegram. Схемы ниже ищутся и открываются только среди файлов этого хранилища."
-        : "Вставьте целиком сообщение сформированной тренировки из Telegram. Обработка выполняется только внутри этого хранилища."
-    });
+    if (!this.options.handoff) {
+      contentEl.createEl("h2", { text: "Собрать тренировку Yoga" });
+      contentEl.createEl("p", {
+        text: "Вставьте целиком сообщение сформированной тренировки из Telegram. Обработка выполняется только внутри этого хранилища."
+      });
+    }
 
     if (!this.options.handoff) {
       const checkSetting = new Setting(contentEl)
@@ -442,20 +442,27 @@ class WorkoutImportModal extends Modal {
       return;
     }
 
-    this.resultEl.createEl("h3", { text: this.workout.title });
+    this.resultEl.createEl(this.options.handoff ? "h2" : "h3", { text: this.workout.title });
+    const total = this.workout.requiredMaterials.length;
+    if (this.options.handoff && total) this.renderLocalPreviews();
+
     const ownerName = this.workout.client || "Себе";
     this.resultEl.createDiv({
       cls: "yoga-status yoga-status-success",
       text: `${this.workout.client ? `Клиент: ${ownerName}` : "Себе"} · тренировка будет сохранена в папку «${ownerName}».`
     });
     const found = this.resolution.matches.size;
-    const total = this.workout.requiredMaterials.length;
     this.resultEl.createDiv({
       cls: `yoga-status ${this.resolution.missing.length ? "yoga-status-warning" : "yoga-status-success"}`,
       text: total ? `Материалы: найдено ${found} из ${total}.` : "Для этой тренировки отдельные схемы не требуются."
     });
 
-    if (this.options.handoff && total) this.renderLocalPreviews();
+    if (this.options.handoff) {
+      this.resultEl.createDiv({
+        cls: "yoga-local-preview-note",
+        text: "Состав получен из Telegram. Схемы выше найдены только среди файлов этого хранилища."
+      });
+    }
 
     if (this.resolution.missing.length) {
       const item = this.resolution.missing[0];

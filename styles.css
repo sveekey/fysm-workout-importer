@@ -85,3 +85,9 @@
 .yoga-local-preview-missing {
   color: var(--text-muted);
 }
+
+.yoga-local-preview-note {
+  margin: 12px 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
