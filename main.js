@@ -169,7 +169,7 @@ function cleanInline(value = "") {
 }
 function cleanClientName(value = "") {
   const name = cleanInline(value).replace(/^[«“"']+|[»”"']+$/gu, "").replace(/[.,;]+$/gu, "").trim();
-  if (!name || name.length > 100 || /^(?:себе|self)$/iu.test(name)) return "";
+  if (!name || name.length > 100 || /^(?:себе|self|тренировка\s+(?:yoga|fysm))$/iu.test(name)) return "";
   return name;
 }
 function extractClientName(comment = "") {
@@ -497,6 +497,7 @@ var DEFAULT_SETTINGS = {
   workoutsFolder: "\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043E\u043A/\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438",
   materialMap: {}
 };
+var PLUGIN_VERSION = "0.8.1";
 function cleanFolderPath(value, fallback) {
   const normalized = (0, import_obsidian.normalizePath)(String(value || "").trim().replace(/^\/+|\/+$/g, ""));
   return normalized || fallback;
@@ -698,6 +699,7 @@ var YogaWorkoutSettingTab = class extends import_obsidian.PluginSettingTab {
     containerEl.createEl("p", {
       text: "\u041F\u043B\u0430\u0433\u0438\u043D \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E. \u041E\u043D \u043D\u0435 \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0430\u0435\u0442\u0441\u044F \u043A Telegram \u0438 \u043D\u0435 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u0445\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0430 \u043D\u0430\u0440\u0443\u0436\u0443."
     });
+    containerEl.createEl("p", { text: `\u0412\u0435\u0440\u0441\u0438\u044F \u043F\u043B\u0430\u0433\u0438\u043D\u0430: ${PLUGIN_VERSION}` });
     new import_obsidian.Setting(containerEl).setName("\u041F\u0430\u043F\u043A\u0430 \u0441 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u0430\u043C\u0438").setDesc("\u041F\u043B\u0430\u0433\u0438\u043D \u0438\u0449\u0435\u0442 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F \u0438 PDF \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u044D\u0442\u043E\u0439 \u043F\u0430\u043F\u043A\u0438.").addText((text) => text.setPlaceholder(DEFAULT_SETTINGS.libraryFolder).setValue(this.plugin.settings.libraryFolder).onChange(async (value) => {
       this.plugin.settings.libraryFolder = cleanFolderPath(value, DEFAULT_SETTINGS.libraryFolder);
       await this.plugin.saveSettings();
@@ -760,7 +762,8 @@ var YogaWorkoutImporterPlugin = class extends import_obsidian.Plugin {
   }
   async createWorkoutNote(workout, resolution) {
     const outputFolder = cleanFolderPath(this.settings.workoutsFolder, DEFAULT_SETTINGS.workoutsFolder);
-    const ownerFolder = safeFolderName(workout.client) || "\u0421\u0435\u0431\u0435";
+    const clientFolder = safeFolderName(workout.client);
+    const ownerFolder = /^(?:тренировка\s+(?:yoga|fysm))$/iu.test(clientFolder) ? "\u0421\u0435\u0431\u0435" : clientFolder || "\u0421\u0435\u0431\u0435";
     const destinationFolder = (0, import_obsidian.normalizePath)(`${outputFolder}/${ownerFolder}`);
     await ensureFolder(this.app.vault, destinationFolder);
     const prefix = workout.date ? `${workout.date} \u2014 ` : "";

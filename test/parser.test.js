@@ -95,4 +95,5 @@ test("extracts an explicitly marked client from known bot comments", () => {
 test("does not turn an ordinary comment into a client folder", () => {
   assert.equal(extractClientName("Мягкая практика для спины клиента"), "");
   assert.equal(extractClientName("Себе"), "");
+  assert.equal(extractClientName("Тренировка Yoga"), "");
 });

@@ -17,6 +17,8 @@ const DEFAULT_SETTINGS = {
   materialMap: {}
 };
 
+const PLUGIN_VERSION = "0.8.1";
+
 function cleanFolderPath(value, fallback) {
   const normalized = normalizePath(String(value || "").trim().replace(/^\/+|\/+$/g, ""));
   return normalized || fallback;
@@ -266,6 +268,7 @@ class YogaWorkoutSettingTab extends PluginSettingTab {
     containerEl.createEl("p", {
       text: "Плагин работает локально. Он не подключается к Telegram и не отправляет содержимое хранилища наружу."
     });
+    containerEl.createEl("p", { text: `Версия плагина: ${PLUGIN_VERSION}` });
 
     new Setting(containerEl)
       .setName("Папка с материалами")
@@ -362,7 +365,8 @@ export default class YogaWorkoutImporterPlugin extends Plugin {
 
   async createWorkoutNote(workout, resolution) {
     const outputFolder = cleanFolderPath(this.settings.workoutsFolder, DEFAULT_SETTINGS.workoutsFolder);
-    const ownerFolder = safeFolderName(workout.client) || "Себе";
+    const clientFolder = safeFolderName(workout.client);
+    const ownerFolder = /^(?:тренировка\s+(?:yoga|fysm))$/iu.test(clientFolder) ? "Себе" : (clientFolder || "Себе");
     const destinationFolder = normalizePath(`${outputFolder}/${ownerFolder}`);
     await ensureFolder(this.app.vault, destinationFolder);
 
