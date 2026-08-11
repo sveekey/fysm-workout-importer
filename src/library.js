@@ -15,7 +15,7 @@ function isInsideFolder(filePath, folderPath) {
 export function getRequirementFolder(libraryFolder, requirement) {
   const root = String(libraryFolder || "").replace(/^\/+|\/+$/g, "");
   let child = "";
-  if (requirement.kind === "algorithm" && ["FYSM 1", "FYSM 2", "FYSM 3"].includes(requirement.set)) {
+  if (requirement.kind === "algorithm" && ["F1", "F2", "F3"].includes(requirement.set)) {
     child = requirement.set;
   } else if (requirement.kind === "warmup" && normalizeMaterialName(requirement.displayName).startsWith("zero ")) {
     child = "ZERO";
@@ -40,7 +40,7 @@ function scoreCandidate(requirement, file) {
     if (number && basename === `zero ${number}`) return 100;
   }
 
-  const withoutSetPrefix = basename.replace(/^fysm\s*[123]\s+/u, "");
+  const withoutSetPrefix = basename.replace(/^f[123]\s+/iu, "");
   if (withoutSetPrefix === wanted) return 92;
   if (wanted.length >= 5 && (basename.startsWith(`${wanted} `) || basename.endsWith(` ${wanted}`))) return 75;
   if (wanted.length >= 5 && pathWithoutExtension.endsWith(` ${wanted}`)) return 70;

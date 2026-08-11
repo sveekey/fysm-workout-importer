@@ -27,8 +27,8 @@ test("parses a generated workout with ZERO and algorithms", () => {
   assert.deepEqual(workout.warmup.sequence, [8, 12]);
   assert.equal(workout.warmup.repetitions, "4х4");
   assert.deepEqual(workout.algorithms, [
-    { index: 1, name: "Струна", set: "FYSM 1", mode: "3х5", zone: "🔼" },
-    { index: 2, name: "Активация центра", set: "FYSM 2", mode: "40 секунд", zone: "🔽" }
+    { index: 1, name: "Струна", set: "F1", mode: "3х5", zone: "🔼" },
+    { index: 2, name: "Активация центра", set: "F2", mode: "40 секунд", zone: "🔽" }
   ]);
   assert.deepEqual(workout.requiredMaterials.map(item => item.displayName), ["ZERO 8", "ZERO 12", "Струна", "Активация центра"]);
 });
@@ -51,7 +51,7 @@ test("parses HTML-formatted Telegram source text", () => {
   assert.deepEqual(workout.requiredMaterials.map(item => item.displayName), ["Сурья Намаскар 1"]);
 });
 
-test("does not require a material for plain static warmup or FYSM LITE", () => {
+test("does not require a material for plain static warmup or Yoga LITE", () => {
   const workout = parseWorkoutText(`
 «Без схем»
 • Дата: 2026-08-12
@@ -59,7 +59,7 @@ test("does not require a material for plain static warmup or FYSM LITE", () => {
 • Метроном: 20
 • ON: 🗿 Статика на 8 кругов
 • Алгоритмы:
-1) ⏺️ FYSM LITE — 5 минут
+1) ⏺️ Yoga LITE — 5 минут
   `);
 
   assert.equal(workout.warmup.type, "static");

@@ -12,8 +12,8 @@ import { buildWorkoutMarkdown } from "./markdown.js";
 import { listMaterialFiles, resolveWorkoutMaterials } from "./library.js";
 
 const DEFAULT_SETTINGS = {
-  libraryFolder: "FYSM/Методички",
-  workoutsFolder: "FYSM/Тренировки",
+  libraryFolder: "Конструктор тренировок/Материалы",
+  workoutsFolder: "Конструктор тренировок/Тренировки",
   materialMap: {}
 };
 
@@ -27,7 +27,7 @@ function safeFileName(value = "") {
     .replace(/[\\/:*?"<>|#[\]^]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return cleaned.slice(0, 100) || "Тренировка FYSM";
+  return cleaned.slice(0, 100) || "Тренировка Yoga";
 }
 
 function safeFolderName(value = "") {
@@ -100,8 +100,8 @@ class WorkoutImportModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
-    contentEl.addClass("fysm-import-modal");
-    contentEl.createEl("h2", { text: "Собрать тренировку FYSM" });
+    contentEl.addClass("yoga-import-modal");
+    contentEl.createEl("h2", { text: "Собрать тренировку Yoga" });
     contentEl.createEl("p", {
       text: "Вставьте целиком сообщение сформированной тренировки из Telegram. Обработка выполняется только внутри этого хранилища."
     });
@@ -112,10 +112,10 @@ class WorkoutImportModal extends Modal {
         .setButtonText("Проверить материалы")
         .setCta()
         .onClick(() => this.preview()));
-    checkSetting.settingEl.addClass("fysm-import-primary-action");
+    checkSetting.settingEl.addClass("yoga-import-primary-action");
 
     const textArea = contentEl.createEl("textarea", {
-      cls: "fysm-import-textarea",
+      cls: "yoga-import-textarea",
       attr: { placeholder: "Вставьте сообщение тренировки…" }
     });
     textArea.value = this.inputText;
@@ -128,7 +128,7 @@ class WorkoutImportModal extends Modal {
       this.createSetting = null;
     });
 
-    this.resultEl = contentEl.createDiv({ cls: "fysm-import-results" });
+    this.resultEl = contentEl.createDiv({ cls: "yoga-import-results" });
     if (this.inputText.trim()) this.preview();
   }
 
@@ -141,20 +141,20 @@ class WorkoutImportModal extends Modal {
       this.resolution = resolveWorkoutMaterials(this.app, this.workout, this.plugin.settings);
     } catch (error) {
       const message = error instanceof WorkoutParseError ? error.message : `Не удалось разобрать тренировку: ${error.message}`;
-      this.resultEl.createDiv({ cls: "fysm-status fysm-status-error", text: message });
+      this.resultEl.createDiv({ cls: "yoga-status yoga-status-error", text: message });
       return;
     }
 
     this.resultEl.createEl("h3", { text: this.workout.title });
     const ownerName = this.workout.client || "Себе";
     this.resultEl.createDiv({
-      cls: "fysm-status fysm-status-success",
+      cls: "yoga-status yoga-status-success",
       text: `${this.workout.client ? `Клиент: ${ownerName}` : "Себе"} · тренировка будет сохранена в папку «${ownerName}».`
     });
     const found = this.resolution.matches.size;
     const total = this.workout.requiredMaterials.length;
     this.resultEl.createDiv({
-      cls: `fysm-status ${this.resolution.missing.length ? "fysm-status-warning" : "fysm-status-success"}`,
+      cls: `yoga-status ${this.resolution.missing.length ? "yoga-status-warning" : "yoga-status-success"}`,
       text: total ? `Материалы: найдено ${found} из ${total}.` : "Для этой тренировки отдельные схемы не требуются."
     });
 
@@ -163,9 +163,9 @@ class WorkoutImportModal extends Modal {
       const description = item.reason === "ambiguous"
         ? `В папке «${item.expectedFolder}» найдено несколько похожих файлов — выберите нужный.`
         : `Файл не найден в папке «${item.expectedFolder}».`;
-      const wizardEl = this.resultEl.createDiv({ cls: "fysm-material-wizard" });
+      const wizardEl = this.resultEl.createDiv({ cls: "yoga-material-wizard" });
       wizardEl.createDiv({
-        cls: "fysm-material-progress",
+        cls: "yoga-material-progress",
         text: `Следующий материал · осталось ${this.resolution.missing.length}`
       });
       new Setting(wizardEl)
@@ -229,7 +229,7 @@ class WorkoutImportModal extends Modal {
     const input = this.contentEl.doc.createElement("input");
     input.type = "file";
     input.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf";
-    input.className = "fysm-hidden-file-input";
+    input.className = "yoga-hidden-file-input";
     this.contentEl.appendChild(input);
     input.addEventListener("change", async () => {
       const file = input.files?.[0];
@@ -253,7 +253,7 @@ class WorkoutImportModal extends Modal {
   }
 }
 
-class FysmWorkoutSettingTab extends PluginSettingTab {
+class YogaWorkoutSettingTab extends PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -262,13 +262,13 @@ class FysmWorkoutSettingTab extends PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "FYSM Workout Importer" });
+    containerEl.createEl("h2", { text: "Yoga Workout Importer" });
     containerEl.createEl("p", {
       text: "Плагин работает локально. Он не подключается к Telegram и не отправляет содержимое хранилища наружу."
     });
 
     new Setting(containerEl)
-      .setName("Папка с методичками")
+      .setName("Папка с материалами")
       .setDesc("Плагин ищет изображения и PDF только внутри этой папки.")
       .addText(text => text
         .setPlaceholder(DEFAULT_SETTINGS.libraryFolder)
@@ -296,11 +296,12 @@ class FysmWorkoutSettingTab extends PluginSettingTab {
         .setButtonText("Создать")
         .onClick(async () => {
           await ensureFolder(this.app.vault, this.plugin.settings.libraryFolder);
-          await Promise.all(["FYSM 1", "FYSM 2", "FYSM 3", "ZERO", "ON", "SURYA"].map(folder =>
+          await Promise.all(["F1", "F2", "F3", "ZERO", "ON", "SURYA"].map(folder =>
             ensureFolder(this.app.vault, `${this.plugin.settings.libraryFolder}/${folder}`)
           ));
           await ensureFolder(this.app.vault, this.plugin.settings.workoutsFolder);
-          new Notice("Папки FYSM готовы.");
+          await ensureFolder(this.app.vault, `${this.plugin.settings.workoutsFolder}/Себе`);
+          new Notice("Папки конструктора готовы.");
         }));
 
     new Setting(containerEl)
@@ -317,11 +318,11 @@ class FysmWorkoutSettingTab extends PluginSettingTab {
   }
 }
 
-export default class FysmWorkoutImporterPlugin extends Plugin {
+export default class YogaWorkoutImporterPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
 
-    this.addRibbonIcon("clipboard-paste", "Собрать тренировку FYSM", () => this.openImporterFromClipboard());
+    this.addRibbonIcon("clipboard-paste", "Собрать тренировку Yoga", () => this.openImporterFromClipboard());
     this.addCommand({
       id: "import-workout-from-clipboard",
       name: "Собрать тренировку из буфера обмена",
@@ -332,7 +333,7 @@ export default class FysmWorkoutImporterPlugin extends Plugin {
       name: "Открыть импортёр тренировки",
       callback: () => new WorkoutImportModal(this.app, this, "").open()
     });
-    this.addSettingTab(new FysmWorkoutSettingTab(this.app, this));
+    this.addSettingTab(new YogaWorkoutSettingTab(this.app, this));
   }
 
   async loadSettings() {

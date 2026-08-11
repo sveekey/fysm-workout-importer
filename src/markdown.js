@@ -4,7 +4,7 @@ function yamlString(value = "") {
 
 function materialBlock(requirement, match, makeEmbed) {
   if (match?.file) return makeEmbed(match.file);
-  return `> [!warning] Схема не найдена\n> Добавьте локальный материал «${requirement.displayName}» через импортёр FYSM.`;
+  return `> [!warning] Схема не найдена\n> Добавьте локальный материал «${requirement.displayName}» через импортёр Yoga.`;
 }
 
 function findRequirement(workout, kind, displayName) {
@@ -13,9 +13,9 @@ function findRequirement(workout, kind, displayName) {
 
 function setEmoji(set = "") {
   return {
-    "FYSM 1": "1️⃣",
-    "FYSM 2": "2️⃣",
-    "FYSM 3": "3️⃣",
+    F1: "1️⃣",
+    F2: "2️⃣",
+    F3: "3️⃣",
     LITE: "⏺️"
   }[set] || "";
 }
@@ -39,10 +39,10 @@ export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
     `title: ${yamlString(workout.title)}`,
     workout.date ? `date: ${yamlString(workout.date)}` : "",
     workout.client ? `client: ${yamlString(workout.client)}` : "",
-    "source: FYSM Boy",
-    "fysm_imported: true",
+    "source: Yoga",
+    "yoga_imported: true",
     "tags:",
-    "  - fysm/training",
+    "  - yoga/training",
     "---",
     "",
     `**«${workout.title}»**`,
@@ -65,10 +65,12 @@ export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
   } else {
     meta.push("• **Алгоритмы**: нет");
   }
-  lines.push(...meta, "", "## ON", "");
+  lines.push(...meta, "", "## Включение", "");
 
   if (workout.warmup.type === "zero") {
-    lines.push(`**ZERO**${workout.warmup.repetitions ? ` — ${workout.warmup.repetitions}` : ""}`, "");
+    const sequence = workout.warmup.sequence.join(", ");
+    const repetitions = workout.warmup.repetitions ? ` — ${workout.warmup.repetitions}` : "";
+    lines.push(`**ZERO**${sequence ? ` ${sequence}` : ""}${repetitions}`, "");
     if (!workout.warmup.sequence.length) {
       lines.push("> [!warning] В сообщении не было конкретных номеров ZERO.", "");
     }
@@ -76,7 +78,7 @@ export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
       const displayName = `ZERO ${number}`;
       const requirement = findRequirement(workout, "warmup", displayName);
       const match = requirement ? resolution.matches.get(requirement.id) : null;
-      lines.push(`### ${displayName}`, "", materialBlock(requirement || { displayName }, match, makeEmbed), "");
+      lines.push(materialBlock(requirement || { displayName }, match, makeEmbed), "");
     }
   } else {
     lines.push(`**${workout.warmup.name}**${workout.warmup.repetitions ? ` — ${workout.warmup.repetitions}` : ""}`, "");
@@ -92,9 +94,8 @@ export function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
   }
 
   workout.algorithms.forEach((algorithm, index) => {
-    lines.push(`### ${index + 1}. ${algorithm.name}`, "");
-    const details = [algorithm.set, algorithm.mode].filter(Boolean).join(" · ");
-    if (details) lines.push(`**${details}**`, "");
+    const mode = algorithm.mode ? ` · ${algorithm.mode}` : "";
+    lines.push(`### ${index + 1}. ${algorithm.name}${mode}`, "");
     const requirement = findRequirement(workout, "algorithm", algorithm.name);
     if (requirement) {
       lines.push(materialBlock(requirement, resolution.matches.get(requirement.id), makeEmbed), "");

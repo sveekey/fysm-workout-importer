@@ -26,71 +26,71 @@ function fakeApp(paths) {
 
 test("matches exact material names only inside the configured library", () => {
   const app = fakeApp([
-    "FYSM/Методички/ZERO/ZERO 12.png",
-    "FYSM/Методички/FYSM 2/Активация центра.jpg",
+    "Конструктор тренировок/Материалы/ZERO/ZERO 12.png",
+    "Конструктор тренировок/Материалы/F2/Активация центра.jpg",
     "Другая папка/Струна.png"
   ]);
   const workout = {
     requiredMaterials: [
       { id: "warmup:zero 12", kind: "warmup", displayName: "ZERO 12", set: "" },
-      { id: "algorithm:активация центра", kind: "algorithm", displayName: "Активация центра", set: "FYSM 2" },
-      { id: "algorithm:струна", kind: "algorithm", displayName: "Струна", set: "FYSM 1" }
+      { id: "algorithm:активация центра", kind: "algorithm", displayName: "Активация центра", set: "F2" },
+      { id: "algorithm:струна", kind: "algorithm", displayName: "Струна", set: "F1" }
     ]
   };
 
   const result = resolveWorkoutMaterials(app, workout, {
-    libraryFolder: "FYSM/Методички",
+    libraryFolder: "Конструктор тренировок/Материалы",
     materialMap: {}
   });
 
-  assert.equal(result.matches.get("warmup:zero 12").file.path, "FYSM/Методички/ZERO/ZERO 12.png");
-  assert.equal(result.matches.get("algorithm:активация центра").file.path, "FYSM/Методички/FYSM 2/Активация центра.jpg");
+  assert.equal(result.matches.get("warmup:zero 12").file.path, "Конструктор тренировок/Материалы/ZERO/ZERO 12.png");
+  assert.equal(result.matches.get("algorithm:активация центра").file.path, "Конструктор тренировок/Материалы/F2/Активация центра.jpg");
   assert.deepEqual(result.missing.map(item => item.requirement.displayName), ["Струна"]);
-  assert.equal(result.missing[0].expectedFolder, "FYSM/Методички/FYSM 1");
+  assert.equal(result.missing[0].expectedFolder, "Конструктор тренировок/Материалы/F1");
 });
 
 test("prefers a manual local mapping", () => {
   const app = fakeApp([
-    "FYSM/Методички/FYSM 1/Мой скриншот.png",
-    "FYSM/Методички/FYSM 1/Струна.png"
+    "Конструктор тренировок/Материалы/F1/Мой скриншот.png",
+    "Конструктор тренировок/Материалы/F1/Струна.png"
   ]);
   const workout = {
     requiredMaterials: [
-      { id: "algorithm:струна", kind: "algorithm", displayName: "Струна", set: "FYSM 1" }
+      { id: "algorithm:струна", kind: "algorithm", displayName: "Струна", set: "F1" }
     ]
   };
 
   const result = resolveWorkoutMaterials(app, workout, {
-    libraryFolder: "FYSM/Методички",
-    materialMap: { "algorithm:струна": "FYSM/Методички/FYSM 1/Мой скриншот.png" }
+    libraryFolder: "Конструктор тренировок/Материалы",
+    materialMap: { "algorithm:струна": "Конструктор тренировок/Материалы/F1/Мой скриншот.png" }
   });
 
-  assert.equal(result.matches.get("algorithm:струна").file.path, "FYSM/Методички/FYSM 1/Мой скриншот.png");
+  assert.equal(result.matches.get("algorithm:струна").file.path, "Конструктор тренировок/Материалы/F1/Мой скриншот.png");
   assert.equal(result.matches.get("algorithm:струна").source, "manual");
 });
 
-test("does not accept an algorithm file from the wrong FYSM level folder", () => {
-  const app = fakeApp(["FYSM/Методички/FYSM 2/Струна.png"]);
+test("does not accept an algorithm file from the wrong level folder", () => {
+  const app = fakeApp(["Конструктор тренировок/Материалы/F2/Струна.png"]);
   const workout = {
     requiredMaterials: [
-      { id: "algorithm:струна", kind: "algorithm", displayName: "Струна", set: "FYSM 1" }
+      { id: "algorithm:струна", kind: "algorithm", displayName: "Струна", set: "F1" }
     ]
   };
 
   const result = resolveWorkoutMaterials(app, workout, {
-    libraryFolder: "FYSM/Методички",
+    libraryFolder: "Конструктор тренировок/Материалы",
     materialMap: {}
   });
 
   assert.equal(result.matches.size, 0);
-  assert.equal(result.missing[0].expectedFolder, "FYSM/Методички/FYSM 1");
+  assert.equal(result.missing[0].expectedFolder, "Конструктор тренировок/Материалы/F1");
 });
 
 test("routes Surya, ZERO and ON to separate sibling folders", () => {
   const app = fakeApp([
-    "FYSM/Методички/SURYA/Сурья Намаскар 1.png",
-    "FYSM/Методички/ZERO/ZERO 12.png",
-    "FYSM/Методички/ON/ON 10.png"
+    "Конструктор тренировок/Материалы/SURYA/Сурья Намаскар 1.png",
+    "Конструктор тренировок/Материалы/ZERO/ZERO 12.png",
+    "Конструктор тренировок/Материалы/ON/ON 10.png"
   ]);
   const workout = {
     requiredMaterials: [
@@ -101,11 +101,11 @@ test("routes Surya, ZERO and ON to separate sibling folders", () => {
   };
 
   const result = resolveWorkoutMaterials(app, workout, {
-    libraryFolder: "FYSM/Методички",
+    libraryFolder: "Конструктор тренировок/Материалы",
     materialMap: {}
   });
 
-  assert.equal(result.matches.get("warmup:сурья намаскар 1").file.path, "FYSM/Методички/SURYA/Сурья Намаскар 1.png");
-  assert.equal(result.matches.get("warmup:zero 12").file.path, "FYSM/Методички/ZERO/ZERO 12.png");
-  assert.equal(result.matches.get("warmup:on 10").file.path, "FYSM/Методички/ON/ON 10.png");
+  assert.equal(result.matches.get("warmup:сурья намаскар 1").file.path, "Конструктор тренировок/Материалы/SURYA/Сурья Намаскар 1.png");
+  assert.equal(result.matches.get("warmup:zero 12").file.path, "Конструктор тренировок/Материалы/ZERO/ZERO 12.png");
+  assert.equal(result.matches.get("warmup:on 10").file.path, "Конструктор тренировок/Материалы/ON/ON 10.png");
 });

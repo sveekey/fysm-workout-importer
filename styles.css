@@ -1,8 +1,8 @@
-.fysm-import-modal {
+.yoga-import-modal {
   max-width: 760px;
 }
 
-.fysm-import-textarea {
+.yoga-import-textarea {
   box-sizing: border-box;
   min-height: 260px;
   width: 100%;
@@ -12,33 +12,33 @@
   font-family: var(--font-monospace);
 }
 
-.fysm-import-primary-action {
+.yoga-import-primary-action {
   margin: 8px 0 12px;
 }
 
-.fysm-import-results {
+.yoga-import-results {
   margin-top: 14px;
 }
 
-.fysm-status {
+.yoga-status {
   margin: 8px 0 12px;
   padding: 9px 11px;
   border-radius: var(--radius-s);
 }
 
-.fysm-status-success {
+.yoga-status-success {
   background: rgba(var(--color-green-rgb), 0.15);
 }
 
-.fysm-status-warning {
+.yoga-status-warning {
   background: rgba(var(--color-yellow-rgb), 0.15);
 }
 
-.fysm-status-error {
+.yoga-status-error {
   background: rgba(var(--color-red-rgb), 0.15);
 }
 
-.fysm-material-wizard {
+.yoga-material-wizard {
   margin: 12px 0;
   padding: 10px 12px;
   border: 1px solid var(--background-modifier-border);
@@ -46,11 +46,11 @@
   background: var(--background-secondary);
 }
 
-.fysm-material-progress {
+.yoga-material-progress {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
 
-.fysm-hidden-file-input {
+.yoga-hidden-file-input {
   display: none;
 }

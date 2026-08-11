@@ -90,7 +90,7 @@ function parseTitle(lines) {
     const match = line.match(/^[«“](.+?)[»”]$/u) || line.match(/[«“](.+?)[»”]/u);
     if (match && match[1] && !match[1].includes("—")) return match[1].trim();
   }
-  return "Тренировка FYSM";
+  return "Тренировка Yoga";
 }
 
 function parseEstimatedMinutes(text) {
@@ -153,9 +153,9 @@ function parseAlgorithms(lines) {
 
     const left = match[2].trim();
     let set = "";
-    if (left.includes("1️⃣")) set = "FYSM 1";
-    else if (left.includes("2️⃣")) set = "FYSM 2";
-    else if (left.includes("3️⃣")) set = "FYSM 3";
+    if (left.includes("1️⃣")) set = "F1";
+    else if (left.includes("2️⃣")) set = "F2";
+    else if (left.includes("3️⃣")) set = "F3";
     else if (left.includes("⏺️")) set = "LITE";
 
     const zone = normalizeZone(left.match(/🔼|🔽|⏺️|⬆️|⬇️/u)?.[0]);
@@ -210,7 +210,7 @@ export function getRequiredMaterials(workout) {
   }
 
   workout.algorithms.forEach(algorithm => {
-    if (["FYSM 1", "FYSM 2", "FYSM 3"].includes(algorithm.set)) {
+    if (["F1", "F2", "F3"].includes(algorithm.set)) {
       add("algorithm", algorithm.name, algorithm.set);
     }
   });

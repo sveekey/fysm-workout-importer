@@ -17,7 +17,7 @@ test("builds a local note with embeds and no source URLs", () => {
   for (const requirement of workout.requiredMaterials) {
     resolution.matches.set(requirement.id, {
       requirement,
-      file: { path: `FYSM/Методички/${requirement.displayName}.png` }
+      file: { path: `Конструктор тренировок/Материалы/${requirement.displayName}.png` }
     });
   }
 
@@ -25,8 +25,12 @@ test("builds a local note with embeds and no source URLs", () => {
   assert.match(markdown, /\*\*«Локальная тренировка»\*\*/u);
   assert.match(markdown, /• \*\*ON\*\*: 🥌 \*\*ZERO\*\* \( 12 \) на \*\*8\*\*/u);
   assert.match(markdown, /• \*\*Алгоритмы\*\*:\n1\) 1️⃣ \*\*Струна\*\* — \*\*3х5\*\*/u);
-  assert.match(markdown, /!\[\[FYSM\/Методички\/ZERO 12\.png\]\]/u);
-  assert.match(markdown, /!\[\[FYSM\/Методички\/Струна\.png\]\]/u);
+  assert.match(markdown, /## Включение\n\n\*\*ZERO\*\* 12 — 8/u);
+  assert.doesNotMatch(markdown, /### ZERO 12/u);
+  assert.match(markdown, /### 1\. Струна · 3х5/u);
+  assert.doesNotMatch(markdown, /\*\*F1 · 3х5\*\*/u);
+  assert.match(markdown, /!\[\[Конструктор тренировок\/Материалы\/ZERO 12\.png\]\]/u);
+  assert.match(markdown, /!\[\[Конструктор тренировок\/Материалы\/Струна\.png\]\]/u);
   assert.doesNotMatch(markdown, /https?:\/\//u);
 });
 

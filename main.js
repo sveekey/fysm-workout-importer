@@ -19,14 +19,14 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/main.js
 var main_exports = {};
 __export(main_exports, {
-  default: () => FysmWorkoutImporterPlugin
+  default: () => YogaWorkoutImporterPlugin
 });
 module.exports = __toCommonJS(main_exports);
 var import_obsidian = require("obsidian");
 
 // src/catalog.js
-var FYSM_ALGORITHMS = {
-  "FYSM 1": [
+var YOGA_ALGORITHMS = {
+  F1: [
     "\u0421\u0442\u0440\u0443\u043D\u0430",
     "\u0414\u0435\u0442\u0430\u043B\u0438",
     "\u0426\u0435\u043D\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435",
@@ -55,7 +55,7 @@ var FYSM_ALGORITHMS = {
     "\u041C\u0438\u0440\u043D\u044B\u0439 \u0432\u043E\u0438\u043D",
     "\u0421\u0430\u0445\u0430\u0440"
   ],
-  "FYSM 2": [
+  F2: [
     "\u0420\u0435\u0432\u0438\u0437\u0438\u044F",
     "\u0423\u0441\u0442\u0440\u0435\u043C\u043B\u0435\u043D\u0438\u0435",
     "\u041F\u0440\u043E\u0440\u0430\u0431\u043E\u0442\u043A\u0430",
@@ -84,7 +84,7 @@ var FYSM_ALGORITHMS = {
     "\u0412\u0435\u0440\u0435\u043D\u0438\u0446\u0430",
     "\u041F\u0435\u0440\u0435\u043B\u0438\u0432 \u21161"
   ],
-  "FYSM 3": [
+  F3: [
     "\u0424\u0443\u0441\u0442",
     "\u0418\u0441\u0442\u043E\u043C\u0430",
     "\u041A\u0430\u0439\u0440\u043E\u0441",
@@ -133,7 +133,7 @@ var FYSM_ALGORITHMS = {
 };
 function findAlgorithmSet(name = "") {
   const normalized = String(name).normalize("NFKC").toLocaleLowerCase("ru").replace(/ё/g, "\u0435").trim();
-  for (const [set, names] of Object.entries(FYSM_ALGORITHMS)) {
+  for (const [set, names] of Object.entries(YOGA_ALGORITHMS)) {
     if (names.some((item) => item.normalize("NFKC").toLocaleLowerCase("ru").replace(/ё/g, "\u0435").trim() === normalized)) {
       return set;
     }
@@ -203,7 +203,7 @@ function parseTitle(lines) {
     const match = line.match(/^[«“](.+?)[»”]$/u) || line.match(/[«“](.+?)[»”]/u);
     if (match && match[1] && !match[1].includes("\u2014")) return match[1].trim();
   }
-  return "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 FYSM";
+  return "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 Yoga";
 }
 function parseEstimatedMinutes(text) {
   const match = text.match(/(?:Расчетное|Расчётное|Уточнённое)\s+время[^\d]{0,30}~?(\d+)\s*мин/iu);
@@ -247,9 +247,9 @@ function parseAlgorithms(lines) {
     if (!match) continue;
     const left = match[2].trim();
     let set = "";
-    if (left.includes("1\uFE0F\u20E3")) set = "FYSM 1";
-    else if (left.includes("2\uFE0F\u20E3")) set = "FYSM 2";
-    else if (left.includes("3\uFE0F\u20E3")) set = "FYSM 3";
+    if (left.includes("1\uFE0F\u20E3")) set = "F1";
+    else if (left.includes("2\uFE0F\u20E3")) set = "F2";
+    else if (left.includes("3\uFE0F\u20E3")) set = "F3";
     else if (left.includes("\u23FA\uFE0F")) set = "LITE";
     const zone = normalizeZone(left.match(/🔼|🔽|⏺️|⬆️|⬇️/u)?.[0]);
     const name = left.replace(/^(?:1️⃣|2️⃣|3️⃣|⏺️)\s*/u, "").replace(/\s*(?:🔼|🔽|⏺️|⬆️|⬇️)\s*$/u, "").trim();
@@ -286,7 +286,7 @@ function getRequiredMaterials(workout) {
     add("warmup", workout.warmup.name);
   }
   workout.algorithms.forEach((algorithm) => {
-    if (["FYSM 1", "FYSM 2", "FYSM 3"].includes(algorithm.set)) {
+    if (["F1", "F2", "F3"].includes(algorithm.set)) {
       add("algorithm", algorithm.name, algorithm.set);
     }
   });
@@ -323,16 +323,16 @@ function yamlString(value = "") {
 function materialBlock(requirement, match, makeEmbed) {
   if (match?.file) return makeEmbed(match.file);
   return `> [!warning] \u0421\u0445\u0435\u043C\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u0430
-> \u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B \xAB${requirement.displayName}\xBB \u0447\u0435\u0440\u0435\u0437 \u0438\u043C\u043F\u043E\u0440\u0442\u0451\u0440 FYSM.`;
+> \u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B \xAB${requirement.displayName}\xBB \u0447\u0435\u0440\u0435\u0437 \u0438\u043C\u043F\u043E\u0440\u0442\u0451\u0440 Yoga.`;
 }
 function findRequirement(workout, kind, displayName) {
   return workout.requiredMaterials.find((item) => item.kind === kind && item.displayName === displayName);
 }
 function setEmoji(set = "") {
   return {
-    "FYSM 1": "1\uFE0F\u20E3",
-    "FYSM 2": "2\uFE0F\u20E3",
-    "FYSM 3": "3\uFE0F\u20E3",
+    F1: "1\uFE0F\u20E3",
+    F2: "2\uFE0F\u20E3",
+    F3: "3\uFE0F\u20E3",
     LITE: "\u23FA\uFE0F"
   }[set] || "";
 }
@@ -352,10 +352,10 @@ function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
     `title: ${yamlString(workout.title)}`,
     workout.date ? `date: ${yamlString(workout.date)}` : "",
     workout.client ? `client: ${yamlString(workout.client)}` : "",
-    "source: FYSM Boy",
-    "fysm_imported: true",
+    "source: Yoga",
+    "yoga_imported: true",
     "tags:",
-    "  - fysm/training",
+    "  - yoga/training",
     "---",
     "",
     `**\xAB${workout.title}\xBB**`,
@@ -377,9 +377,11 @@ function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
   } else {
     meta.push("\u2022 **\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B**: \u043D\u0435\u0442");
   }
-  lines.push(...meta, "", "## ON", "");
+  lines.push(...meta, "", "## \u0412\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435", "");
   if (workout.warmup.type === "zero") {
-    lines.push(`**ZERO**${workout.warmup.repetitions ? ` \u2014 ${workout.warmup.repetitions}` : ""}`, "");
+    const sequence = workout.warmup.sequence.join(", ");
+    const repetitions = workout.warmup.repetitions ? ` \u2014 ${workout.warmup.repetitions}` : "";
+    lines.push(`**ZERO**${sequence ? ` ${sequence}` : ""}${repetitions}`, "");
     if (!workout.warmup.sequence.length) {
       lines.push("> [!warning] \u0412 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0438 \u043D\u0435 \u0431\u044B\u043B\u043E \u043A\u043E\u043D\u043A\u0440\u0435\u0442\u043D\u044B\u0445 \u043D\u043E\u043C\u0435\u0440\u043E\u0432 ZERO.", "");
     }
@@ -387,7 +389,7 @@ function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
       const displayName = `ZERO ${number}`;
       const requirement = findRequirement(workout, "warmup", displayName);
       const match = requirement ? resolution.matches.get(requirement.id) : null;
-      lines.push(`### ${displayName}`, "", materialBlock(requirement || { displayName }, match, makeEmbed), "");
+      lines.push(materialBlock(requirement || { displayName }, match, makeEmbed), "");
     }
   } else {
     lines.push(`**${workout.warmup.name}**${workout.warmup.repetitions ? ` \u2014 ${workout.warmup.repetitions}` : ""}`, "");
@@ -401,9 +403,8 @@ function buildWorkoutMarkdown(workout, resolution, makeEmbed) {
     lines.push("\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u043E\u0432 \u043D\u0435\u0442.", "");
   }
   workout.algorithms.forEach((algorithm, index) => {
-    lines.push(`### ${index + 1}. ${algorithm.name}`, "");
-    const details = [algorithm.set, algorithm.mode].filter(Boolean).join(" \xB7 ");
-    if (details) lines.push(`**${details}**`, "");
+    const mode = algorithm.mode ? ` \xB7 ${algorithm.mode}` : "";
+    lines.push(`### ${index + 1}. ${algorithm.name}${mode}`, "");
     const requirement = findRequirement(workout, "algorithm", algorithm.name);
     if (requirement) {
       lines.push(materialBlock(requirement, resolution.matches.get(requirement.id), makeEmbed), "");
@@ -428,7 +429,7 @@ function isInsideFolder(filePath, folderPath) {
 function getRequirementFolder(libraryFolder, requirement) {
   const root = String(libraryFolder || "").replace(/^\/+|\/+$/g, "");
   let child = "";
-  if (requirement.kind === "algorithm" && ["FYSM 1", "FYSM 2", "FYSM 3"].includes(requirement.set)) {
+  if (requirement.kind === "algorithm" && ["F1", "F2", "F3"].includes(requirement.set)) {
     child = requirement.set;
   } else if (requirement.kind === "warmup" && normalizeMaterialName(requirement.displayName).startsWith("zero ")) {
     child = "ZERO";
@@ -450,7 +451,7 @@ function scoreCandidate(requirement, file) {
     if (number && basename === number) return 90;
     if (number && basename === `zero ${number}`) return 100;
   }
-  const withoutSetPrefix = basename.replace(/^fysm\s*[123]\s+/u, "");
+  const withoutSetPrefix = basename.replace(/^f[123]\s+/iu, "");
   if (withoutSetPrefix === wanted) return 92;
   if (wanted.length >= 5 && (basename.startsWith(`${wanted} `) || basename.endsWith(` ${wanted}`))) return 75;
   if (wanted.length >= 5 && pathWithoutExtension.endsWith(` ${wanted}`)) return 70;
@@ -492,8 +493,8 @@ function resolveWorkoutMaterials(app, workout, settings) {
 
 // src/main.js
 var DEFAULT_SETTINGS = {
-  libraryFolder: "FYSM/\u041C\u0435\u0442\u043E\u0434\u0438\u0447\u043A\u0438",
-  workoutsFolder: "FYSM/\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438",
+  libraryFolder: "\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043E\u043A/\u041C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B",
+  workoutsFolder: "\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043E\u043A/\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438",
   materialMap: {}
 };
 function cleanFolderPath(value, fallback) {
@@ -502,7 +503,7 @@ function cleanFolderPath(value, fallback) {
 }
 function safeFileName(value = "") {
   const cleaned = String(value).replace(/[\\/:*?"<>|#[\]^]/g, " ").replace(/\s+/g, " ").trim();
-  return cleaned.slice(0, 100) || "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 FYSM";
+  return cleaned.slice(0, 100) || "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 Yoga";
 }
 function safeFolderName(value = "") {
   const cleaned = safeFileName(value).replace(/^\.+|\.+$/g, "").trim();
@@ -566,15 +567,15 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
   }
   onOpen() {
     const { contentEl } = this;
-    contentEl.addClass("fysm-import-modal");
-    contentEl.createEl("h2", { text: "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 FYSM" });
+    contentEl.addClass("yoga-import-modal");
+    contentEl.createEl("h2", { text: "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 Yoga" });
     contentEl.createEl("p", {
       text: "\u0412\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0446\u0435\u043B\u0438\u043A\u043E\u043C \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0441\u0444\u043E\u0440\u043C\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0439 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0438\u0437 Telegram. \u041E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0430 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u044D\u0442\u043E\u0433\u043E \u0445\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0430."
     });
     const checkSetting = new import_obsidian.Setting(contentEl).setDesc("\u041F\u043E\u0441\u043B\u0435 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0442\u0435\u043A\u0441\u0442\u0430 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0443 \u2014 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B \u0431\u0443\u0434\u0443\u0442 \u043D\u0430\u0439\u0434\u0435\u043D\u044B \u0434\u043E \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0438.").addButton((button) => button.setButtonText("\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B").setCta().onClick(() => this.preview()));
-    checkSetting.settingEl.addClass("fysm-import-primary-action");
+    checkSetting.settingEl.addClass("yoga-import-primary-action");
     const textArea = contentEl.createEl("textarea", {
-      cls: "fysm-import-textarea",
+      cls: "yoga-import-textarea",
       attr: { placeholder: "\u0412\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u2026" }
     });
     textArea.value = this.inputText;
@@ -586,7 +587,7 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
       this.createSetting?.settingEl.remove();
       this.createSetting = null;
     });
-    this.resultEl = contentEl.createDiv({ cls: "fysm-import-results" });
+    this.resultEl = contentEl.createDiv({ cls: "yoga-import-results" });
     if (this.inputText.trim()) this.preview();
   }
   preview() {
@@ -598,27 +599,27 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
       this.resolution = resolveWorkoutMaterials(this.app, this.workout, this.plugin.settings);
     } catch (error) {
       const message = error instanceof WorkoutParseError ? error.message : `\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0440\u0430\u0437\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443: ${error.message}`;
-      this.resultEl.createDiv({ cls: "fysm-status fysm-status-error", text: message });
+      this.resultEl.createDiv({ cls: "yoga-status yoga-status-error", text: message });
       return;
     }
     this.resultEl.createEl("h3", { text: this.workout.title });
     const ownerName = this.workout.client || "\u0421\u0435\u0431\u0435";
     this.resultEl.createDiv({
-      cls: "fysm-status fysm-status-success",
+      cls: "yoga-status yoga-status-success",
       text: `${this.workout.client ? `\u041A\u043B\u0438\u0435\u043D\u0442: ${ownerName}` : "\u0421\u0435\u0431\u0435"} \xB7 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 \u0431\u0443\u0434\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430 \u0432 \u043F\u0430\u043F\u043A\u0443 \xAB${ownerName}\xBB.`
     });
     const found = this.resolution.matches.size;
     const total = this.workout.requiredMaterials.length;
     this.resultEl.createDiv({
-      cls: `fysm-status ${this.resolution.missing.length ? "fysm-status-warning" : "fysm-status-success"}`,
+      cls: `yoga-status ${this.resolution.missing.length ? "yoga-status-warning" : "yoga-status-success"}`,
       text: total ? `\u041C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B: \u043D\u0430\u0439\u0434\u0435\u043D\u043E ${found} \u0438\u0437 ${total}.` : "\u0414\u043B\u044F \u044D\u0442\u043E\u0439 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0435 \u0441\u0445\u0435\u043C\u044B \u043D\u0435 \u0442\u0440\u0435\u0431\u0443\u044E\u0442\u0441\u044F."
     });
     if (this.resolution.missing.length) {
       const item = this.resolution.missing[0];
       const description = item.reason === "ambiguous" ? `\u0412 \u043F\u0430\u043F\u043A\u0435 \xAB${item.expectedFolder}\xBB \u043D\u0430\u0439\u0434\u0435\u043D\u043E \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0445\u043E\u0436\u0438\u0445 \u0444\u0430\u0439\u043B\u043E\u0432 \u2014 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043D\u0443\u0436\u043D\u044B\u0439.` : `\u0424\u0430\u0439\u043B \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0432 \u043F\u0430\u043F\u043A\u0435 \xAB${item.expectedFolder}\xBB.`;
-      const wizardEl = this.resultEl.createDiv({ cls: "fysm-material-wizard" });
+      const wizardEl = this.resultEl.createDiv({ cls: "yoga-material-wizard" });
       wizardEl.createDiv({
-        cls: "fysm-material-progress",
+        cls: "yoga-material-progress",
         text: `\u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B \xB7 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ${this.resolution.missing.length}`
       });
       new import_obsidian.Setting(wizardEl).setName(`\u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \xAB${item.requirement.displayName}\xBB`).setDesc(`${description} \u041F\u043E\u0441\u043B\u0435 \u0432\u044B\u0431\u043E\u0440\u0430 \u043F\u043B\u0430\u0433\u0438\u043D \u0441\u0430\u043C \u043D\u0430\u0437\u043E\u0432\u0451\u0442 \u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442 \u043A\u043E\u043F\u0438\u044E \u0444\u0430\u0439\u043B\u0430.`).addButton((button) => button.setButtonText("\u0424\u043E\u0442\u043E / \u0424\u0430\u0439\u043B\u044B").setCta().onClick(() => this.pickMaterialFromDevice(item, button))).addButton((button) => button.setButtonText("\u0423\u0436\u0435 \u0432 vault").onClick(() => {
@@ -663,7 +664,7 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
     const input = this.contentEl.doc.createElement("input");
     input.type = "file";
     input.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf";
-    input.className = "fysm-hidden-file-input";
+    input.className = "yoga-hidden-file-input";
     this.contentEl.appendChild(input);
     input.addEventListener("change", async () => {
       const file = input.files?.[0];
@@ -685,7 +686,7 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
     this.contentEl.empty();
   }
 };
-var FysmWorkoutSettingTab = class extends import_obsidian.PluginSettingTab {
+var YogaWorkoutSettingTab = class extends import_obsidian.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -693,11 +694,11 @@ var FysmWorkoutSettingTab = class extends import_obsidian.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "FYSM Workout Importer" });
+    containerEl.createEl("h2", { text: "Yoga Workout Importer" });
     containerEl.createEl("p", {
       text: "\u041F\u043B\u0430\u0433\u0438\u043D \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E. \u041E\u043D \u043D\u0435 \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0430\u0435\u0442\u0441\u044F \u043A Telegram \u0438 \u043D\u0435 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u0445\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0430 \u043D\u0430\u0440\u0443\u0436\u0443."
     });
-    new import_obsidian.Setting(containerEl).setName("\u041F\u0430\u043F\u043A\u0430 \u0441 \u043C\u0435\u0442\u043E\u0434\u0438\u0447\u043A\u0430\u043C\u0438").setDesc("\u041F\u043B\u0430\u0433\u0438\u043D \u0438\u0449\u0435\u0442 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F \u0438 PDF \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u044D\u0442\u043E\u0439 \u043F\u0430\u043F\u043A\u0438.").addText((text) => text.setPlaceholder(DEFAULT_SETTINGS.libraryFolder).setValue(this.plugin.settings.libraryFolder).onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("\u041F\u0430\u043F\u043A\u0430 \u0441 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u0430\u043C\u0438").setDesc("\u041F\u043B\u0430\u0433\u0438\u043D \u0438\u0449\u0435\u0442 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F \u0438 PDF \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u044D\u0442\u043E\u0439 \u043F\u0430\u043F\u043A\u0438.").addText((text) => text.setPlaceholder(DEFAULT_SETTINGS.libraryFolder).setValue(this.plugin.settings.libraryFolder).onChange(async (value) => {
       this.plugin.settings.libraryFolder = cleanFolderPath(value, DEFAULT_SETTINGS.libraryFolder);
       await this.plugin.saveSettings();
     }));
@@ -707,11 +708,12 @@ var FysmWorkoutSettingTab = class extends import_obsidian.PluginSettingTab {
     }));
     new import_obsidian.Setting(containerEl).setName("\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0430\u043F\u043A\u0438").setDesc("\u0421\u043E\u0437\u0434\u0430\u0451\u0442 \u043F\u0430\u043F\u043A\u0438, \u0435\u0441\u043B\u0438 \u0438\u0445 \u0435\u0449\u0451 \u043D\u0435\u0442. \u0421\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0435 \u0444\u0430\u0439\u043B\u044B \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F.").addButton((button) => button.setButtonText("\u0421\u043E\u0437\u0434\u0430\u0442\u044C").onClick(async () => {
       await ensureFolder(this.app.vault, this.plugin.settings.libraryFolder);
-      await Promise.all(["FYSM 1", "FYSM 2", "FYSM 3", "ZERO", "ON", "SURYA"].map(
+      await Promise.all(["F1", "F2", "F3", "ZERO", "ON", "SURYA"].map(
         (folder) => ensureFolder(this.app.vault, `${this.plugin.settings.libraryFolder}/${folder}`)
       ));
       await ensureFolder(this.app.vault, this.plugin.settings.workoutsFolder);
-      new import_obsidian.Notice("\u041F\u0430\u043F\u043A\u0438 FYSM \u0433\u043E\u0442\u043E\u0432\u044B.");
+      await ensureFolder(this.app.vault, `${this.plugin.settings.workoutsFolder}/\u0421\u0435\u0431\u0435`);
+      new import_obsidian.Notice("\u041F\u0430\u043F\u043A\u0438 \u043A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440\u0430 \u0433\u043E\u0442\u043E\u0432\u044B.");
     }));
     new import_obsidian.Setting(containerEl).setName("\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0440\u0443\u0447\u043D\u044B\u0435 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u044F").setDesc("\u0417\u0430\u0431\u044B\u0432\u0430\u0435\u0442 \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0435 \u0432\u0440\u0443\u0447\u043D\u0443\u044E \u043F\u0430\u0440\u044B \xAB\u0430\u043B\u0433\u043E\u0440\u0438\u0442\u043C \u2192 \u0444\u0430\u0439\u043B\xBB, \u043D\u043E \u043D\u0435 \u0443\u0434\u0430\u043B\u044F\u0435\u0442 \u0441\u0430\u043C\u0438 \u0444\u0430\u0439\u043B\u044B.").addButton((button) => button.setButtonText("\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C").setWarning().onClick(async () => {
       this.plugin.settings.materialMap = {};
@@ -720,10 +722,10 @@ var FysmWorkoutSettingTab = class extends import_obsidian.PluginSettingTab {
     }));
   }
 };
-var FysmWorkoutImporterPlugin = class extends import_obsidian.Plugin {
+var YogaWorkoutImporterPlugin = class extends import_obsidian.Plugin {
   async onload() {
     await this.loadSettings();
-    this.addRibbonIcon("clipboard-paste", "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 FYSM", () => this.openImporterFromClipboard());
+    this.addRibbonIcon("clipboard-paste", "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 Yoga", () => this.openImporterFromClipboard());
     this.addCommand({
       id: "import-workout-from-clipboard",
       name: "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 \u0438\u0437 \u0431\u0443\u0444\u0435\u0440\u0430 \u043E\u0431\u043C\u0435\u043D\u0430",
@@ -734,7 +736,7 @@ var FysmWorkoutImporterPlugin = class extends import_obsidian.Plugin {
       name: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0438\u043C\u043F\u043E\u0440\u0442\u0451\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438",
       callback: () => new WorkoutImportModal(this.app, this, "").open()
     });
-    this.addSettingTab(new FysmWorkoutSettingTab(this.app, this));
+    this.addSettingTab(new YogaWorkoutSettingTab(this.app, this));
   }
   async loadSettings() {
     const loaded = await this.loadData();

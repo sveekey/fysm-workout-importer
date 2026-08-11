@@ -1,9 +1,9 @@
 {
-  "name": "fysm-workout-importer",
+  "name": "yoga-workout-importer",
   "version": "0.7.0",
   "private": true,
   "type": "module",
-  "description": "Local-only Obsidian importer for FYSM workout text copied from Telegram.",
+  "description": "Local-only Obsidian importer for yoga workout text copied from Telegram.",
   "scripts": {
     "build": "node esbuild.config.mjs",
     "test": "node --test"
