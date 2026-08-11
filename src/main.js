@@ -564,7 +564,7 @@ export default class YogaWorkoutImporterPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
 
-    this.addRibbonIcon("clipboard-paste", "Собрать тренировку Yoga", () => this.openImporterFromClipboard());
+    this.addRibbonIcon("clipboard-paste", "Собрать тренировку", () => this.openImporterFromClipboard());
     this.addRibbonIcon("pencil", "Записать тренировку", () => new ManualWorkoutModal(this.app, this).open());
     this.addCommand({
       id: "import-workout-from-clipboard",
