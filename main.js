@@ -879,6 +879,7 @@ var YogaWorkoutImporterPlugin = class extends import_obsidian.Plugin {
   async onload() {
     await this.loadSettings();
     this.addRibbonIcon("clipboard-paste", "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 Yoga", () => this.openImporterFromClipboard());
+    this.addRibbonIcon("pencil", "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443", () => new ManualWorkoutModal(this.app, this).open());
     this.addCommand({
       id: "import-workout-from-clipboard",
       name: "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 \u0438\u0437 \u0431\u0443\u0444\u0435\u0440\u0430 \u043E\u0431\u043C\u0435\u043D\u0430",
