@@ -10,6 +10,7 @@ import {
 import { parseWorkoutText, WorkoutParseError } from "./parser.js";
 import { buildWorkoutMarkdown } from "./markdown.js";
 import { listMaterialFiles, resolveWorkoutMaterials } from "./library.js";
+import { YOGA_ALGORITHMS } from "./catalog.js";
 
 const DEFAULT_SETTINGS = {
   libraryFolder: "Конструктор тренировок/Материалы",
@@ -67,6 +68,50 @@ async function ensureFolder(vault, folderPath) {
   }
 }
 
+function getTodayIsoDate() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function listSavedClientNames(app, workoutsFolder) {
+  const folder = app.vault.getAbstractFileByPath(workoutsFolder);
+  return (folder?.children || [])
+    .filter(item => Array.isArray(item.children))
+    .map(item => item.name)
+    .filter(name => name && name !== "Себе")
+    .sort((left, right) => left.localeCompare(right, "ru"));
+}
+
+function manualWorkoutTitle(warmup, algorithms) {
+  const warmupPart = warmup.type === "zero"
+    ? `ZERO ${warmup.sequence.join(", ")}${warmup.repetitions ? ` — ${warmup.repetitions}` : ""}`
+    : `${warmup.name}${warmup.repetitions ? ` — ${warmup.repetitions}` : ""}`;
+  const algorithmParts = algorithms.map(item => `${item.name}${item.mode ? ` — ${item.mode}` : ""}`);
+  return [warmupPart, ...algorithmParts].filter(Boolean).join(", ") || "Тренировка Yoga";
+}
+
+function manualWorkoutText({ date, client, warmup, algorithms }) {
+  const title = manualWorkoutTitle(warmup, algorithms);
+  const warmupText = warmup.type === "zero"
+    ? `🥌 **ZERO** ( ${warmup.sequence.join(", ")} )${warmup.repetitions ? ` на **${warmup.repetitions}**` : ""}`
+    : `${warmup.type === "surya" ? "☀️" : "🗿"} **${warmup.name}**${warmup.repetitions ? ` на **${warmup.repetitions}**` : ""}`;
+  const setEmoji = { F1: "1️⃣", F2: "2️⃣", F3: "3️⃣", LITE: "⏺️" };
+  const lines = [
+    `**«${title}»**`,
+    `• **Дата**: ${date}`,
+    "• **Метроном**: 20",
+    `• **ON**: ${warmupText}`,
+    "• **Алгоритмы**:"
+  ];
+  if (!algorithms.length) lines.push("нет");
+  algorithms.forEach((item, index) => {
+    lines.push(`${index + 1}) ${setEmoji[item.set] || ""} **${item.name}**${item.zone ? ` ${item.zone}` : ""}${item.mode ? ` — **${item.mode}**` : ""}`.trim());
+  });
+  if (client) lines.push(`• **Комментарий**: Клиент: ${client}`);
+  return lines.join("\n");
+}
+
 class MaterialFileSuggestModal extends FuzzySuggestModal {
   constructor(app, files, onChoose) {
     super(app);
@@ -85,6 +130,200 @@ class MaterialFileSuggestModal extends FuzzySuggestModal {
 
   onChooseItem(file) {
     this.onChoose(file);
+  }
+}
+
+class AlgorithmNameSuggestModal extends FuzzySuggestModal {
+  constructor(app, names, onChoose) {
+    super(app);
+    this.names = names;
+    this.onChoose = onChoose;
+    this.setPlaceholder("Выберите алгоритм…");
+  }
+
+  getItems() {
+    return this.names;
+  }
+
+  getItemText(name) {
+    return name;
+  }
+
+  onChooseItem(name) {
+    this.onChoose(name);
+  }
+}
+
+class ManualWorkoutModal extends Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+    this.date = getTodayIsoDate();
+    this.owner = "self";
+    this.newClient = "";
+    this.warmupType = "zero";
+    this.zeroNumbers = "";
+    this.warmupName = "ON 10";
+    this.repetitions = "";
+    this.algorithms = [];
+  }
+
+  onOpen() {
+    this.contentEl.addClass("yoga-import-modal");
+    this.render();
+  }
+
+  render() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Записать тренировку" });
+    contentEl.createEl("p", { text: "Соберите тренировку по шагам. Все данные останутся в этом хранилище." });
+
+    const clients = listSavedClientNames(this.app, this.plugin.settings.workoutsFolder);
+    new Setting(contentEl)
+      .setName("Для кого")
+      .setDesc("«Себе» сохраняет заметку в одноимённую папку. Клиенты берутся из уже созданных папок тренировок.")
+      .addDropdown(dropdown => {
+        dropdown.addOption("self", "Себе");
+        clients.forEach(name => dropdown.addOption(`client:${name}`, name));
+        dropdown.addOption("new", "Новый клиент…");
+        dropdown.setValue(this.owner).onChange(value => {
+          this.owner = value;
+          this.render();
+        });
+      });
+
+    if (this.owner === "new") {
+      new Setting(contentEl)
+        .setName("Имя клиента")
+        .addText(text => text
+          .setPlaceholder("Например, Анна")
+          .setValue(this.newClient)
+          .onChange(value => { this.newClient = value; }));
+    }
+
+    new Setting(contentEl)
+      .setName("Дата")
+      .addText(text => text
+        .setPlaceholder("ГГГГ-ММ-ДД")
+        .setValue(this.date)
+        .onChange(value => { this.date = value.trim(); }));
+
+    new Setting(contentEl)
+      .setName("Включение")
+      .addDropdown(dropdown => dropdown
+        .addOption("zero", "ZERO")
+        .addOption("static", "ON / статика")
+        .addOption("surya", "Сурья Намаскар")
+        .setValue(this.warmupType)
+        .onChange(value => {
+          this.warmupType = value;
+          if (value === "surya" && this.warmupName === "ON 10") this.warmupName = "Сурья Намаскар 1";
+          this.render();
+        }));
+
+    if (this.warmupType === "zero") {
+      new Setting(contentEl)
+        .setName("Номера ZERO")
+        .setDesc("Через запятую, например: 9, 3, 1.")
+        .addText(text => text
+          .setPlaceholder("9, 3, 1")
+          .setValue(this.zeroNumbers)
+          .onChange(value => { this.zeroNumbers = value; }));
+    } else {
+      new Setting(contentEl)
+        .setName(this.warmupType === "surya" ? "Название Сурьи" : "Название ON")
+        .addText(text => text
+          .setValue(this.warmupName)
+          .onChange(value => { this.warmupName = value; }));
+    }
+
+    new Setting(contentEl)
+      .setName("Режим включения")
+      .setDesc("Например: 4х8 или 8 кругов.")
+      .addText(text => text
+        .setPlaceholder("4х8")
+        .setValue(this.repetitions)
+        .onChange(value => { this.repetitions = value; }));
+
+    contentEl.createEl("h3", { text: "Алгоритмы" });
+    this.algorithms.forEach((algorithm, index) => this.renderAlgorithm(contentEl, algorithm, index));
+    new Setting(contentEl)
+      .addButton(button => button
+        .setButtonText("Добавить алгоритм")
+        .onClick(() => {
+          this.algorithms.push({ set: "F1", name: "", zone: "", mode: "" });
+          this.render();
+        }));
+
+    new Setting(contentEl)
+      .setDesc("После этого плагин найдёт локальные схемы и по одной попросит только отсутствующие.")
+      .addButton(button => button
+        .setButtonText("Проверить материалы")
+        .setCta()
+        .onClick(() => this.openMaterialCheck()));
+  }
+
+  renderAlgorithm(container, algorithm, index) {
+    const setting = new Setting(container).setName(`${index + 1}. ${algorithm.name || "Алгоритм"}`);
+    setting.addDropdown(dropdown => dropdown
+      .addOption("F1", "F1")
+      .addOption("F2", "F2")
+      .addOption("F3", "F3")
+      .addOption("LITE", "LITE")
+      .setValue(algorithm.set)
+      .onChange(value => {
+        algorithm.set = value;
+        algorithm.name = "";
+        this.render();
+      }));
+    setting.addButton(button => button
+      .setButtonText(algorithm.name || "Выбрать")
+      .onClick(() => new AlgorithmNameSuggestModal(this.app, YOGA_ALGORITHMS[algorithm.set] || [], name => {
+        algorithm.name = name;
+        this.render();
+      }).open()));
+    setting.addExtraButton(button => button
+      .setIcon("trash")
+      .setTooltip("Убрать алгоритм")
+      .onClick(() => {
+        this.algorithms.splice(index, 1);
+        this.render();
+      }));
+    new Setting(container)
+      .setDesc("Зона и режим")
+      .addDropdown(dropdown => dropdown
+        .addOption("", "Без зоны")
+        .addOption("🔼", "🔼")
+        .addOption("🔽", "🔽")
+        .addOption("⏺️", "⏺️")
+        .setValue(algorithm.zone)
+        .onChange(value => { algorithm.zone = value; }))
+      .addText(text => text
+        .setPlaceholder("Режим: 1х8")
+        .setValue(algorithm.mode)
+        .onChange(value => { algorithm.mode = value; }));
+  }
+
+  openMaterialCheck() {
+    const client = this.owner === "new"
+      ? safeFolderName(this.newClient)
+      : this.owner.startsWith("client:") ? this.owner.slice("client:".length) : "";
+    const sequence = [...this.zeroNumbers.matchAll(/\d+/g)].map(match => Number.parseInt(match[0], 10));
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(this.date)) return new Notice("Укажите дату в формате ГГГГ-ММ-ДД.");
+    if (this.warmupType === "zero" && !sequence.length) return new Notice("Укажите хотя бы один номер ZERO.");
+    if (this.warmupType !== "zero" && !this.warmupName.trim()) return new Notice("Укажите название включения.");
+    if (this.algorithms.some(item => !item.name)) return new Notice("Выберите название для каждого алгоритма.");
+    const warmup = this.warmupType === "zero"
+      ? { type: "zero", name: "ZERO", sequence, repetitions: this.repetitions.trim() }
+      : { type: this.warmupType, name: this.warmupName.trim(), sequence: [], repetitions: this.repetitions.trim() };
+    const text = manualWorkoutText({ date: this.date, client, warmup, algorithms: this.algorithms });
+    this.close();
+    new WorkoutImportModal(this.app, this.plugin, text).open();
+  }
+
+  onClose() {
+    this.contentEl.empty();
   }
 }
 
@@ -335,6 +574,11 @@ export default class YogaWorkoutImporterPlugin extends Plugin {
       id: "open-workout-importer",
       name: "Открыть импортёр тренировки",
       callback: () => new WorkoutImportModal(this.app, this, "").open()
+    });
+    this.addCommand({
+      id: "record-workout-manually",
+      name: "Записать тренировку",
+      callback: () => new ManualWorkoutModal(this.app, this).open()
     });
     this.addSettingTab(new YogaWorkoutSettingTab(this.app, this));
   }

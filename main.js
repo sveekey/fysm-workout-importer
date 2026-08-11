@@ -538,6 +538,38 @@ async function ensureFolder(vault, folderPath) {
     }
   }
 }
+function getTodayIsoDate() {
+  const now = /* @__PURE__ */ new Date();
+  const offset = now.getTimezoneOffset() * 6e4;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
+function listSavedClientNames(app, workoutsFolder) {
+  const folder = app.vault.getAbstractFileByPath(workoutsFolder);
+  return (folder?.children || []).filter((item) => Array.isArray(item.children)).map((item) => item.name).filter((name) => name && name !== "\u0421\u0435\u0431\u0435").sort((left, right) => left.localeCompare(right, "ru"));
+}
+function manualWorkoutTitle(warmup, algorithms) {
+  const warmupPart = warmup.type === "zero" ? `ZERO ${warmup.sequence.join(", ")}${warmup.repetitions ? ` \u2014 ${warmup.repetitions}` : ""}` : `${warmup.name}${warmup.repetitions ? ` \u2014 ${warmup.repetitions}` : ""}`;
+  const algorithmParts = algorithms.map((item) => `${item.name}${item.mode ? ` \u2014 ${item.mode}` : ""}`);
+  return [warmupPart, ...algorithmParts].filter(Boolean).join(", ") || "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 Yoga";
+}
+function manualWorkoutText({ date, client, warmup, algorithms }) {
+  const title = manualWorkoutTitle(warmup, algorithms);
+  const warmupText = warmup.type === "zero" ? `\u{1F94C} **ZERO** ( ${warmup.sequence.join(", ")} )${warmup.repetitions ? ` \u043D\u0430 **${warmup.repetitions}**` : ""}` : `${warmup.type === "surya" ? "\u2600\uFE0F" : "\u{1F5FF}"} **${warmup.name}**${warmup.repetitions ? ` \u043D\u0430 **${warmup.repetitions}**` : ""}`;
+  const setEmoji2 = { F1: "1\uFE0F\u20E3", F2: "2\uFE0F\u20E3", F3: "3\uFE0F\u20E3", LITE: "\u23FA\uFE0F" };
+  const lines = [
+    `**\xAB${title}\xBB**`,
+    `\u2022 **\u0414\u0430\u0442\u0430**: ${date}`,
+    "\u2022 **\u041C\u0435\u0442\u0440\u043E\u043D\u043E\u043C**: 20",
+    `\u2022 **ON**: ${warmupText}`,
+    "\u2022 **\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B**:"
+  ];
+  if (!algorithms.length) lines.push("\u043D\u0435\u0442");
+  algorithms.forEach((item, index) => {
+    lines.push(`${index + 1}) ${setEmoji2[item.set] || ""} **${item.name}**${item.zone ? ` ${item.zone}` : ""}${item.mode ? ` \u2014 **${item.mode}**` : ""}`.trim());
+  });
+  if (client) lines.push(`\u2022 **\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439**: \u041A\u043B\u0438\u0435\u043D\u0442: ${client}`);
+  return lines.join("\n");
+}
 var MaterialFileSuggestModal = class extends import_obsidian.FuzzySuggestModal {
   constructor(app, files, onChoose) {
     super(app);
@@ -553,6 +585,125 @@ var MaterialFileSuggestModal = class extends import_obsidian.FuzzySuggestModal {
   }
   onChooseItem(file) {
     this.onChoose(file);
+  }
+};
+var AlgorithmNameSuggestModal = class extends import_obsidian.FuzzySuggestModal {
+  constructor(app, names, onChoose) {
+    super(app);
+    this.names = names;
+    this.onChoose = onChoose;
+    this.setPlaceholder("\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u2026");
+  }
+  getItems() {
+    return this.names;
+  }
+  getItemText(name) {
+    return name;
+  }
+  onChooseItem(name) {
+    this.onChoose(name);
+  }
+};
+var ManualWorkoutModal = class extends import_obsidian.Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+    this.date = getTodayIsoDate();
+    this.owner = "self";
+    this.newClient = "";
+    this.warmupType = "zero";
+    this.zeroNumbers = "";
+    this.warmupName = "ON 10";
+    this.repetitions = "";
+    this.algorithms = [];
+  }
+  onOpen() {
+    this.contentEl.addClass("yoga-import-modal");
+    this.render();
+  }
+  render() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443" });
+    contentEl.createEl("p", { text: "\u0421\u043E\u0431\u0435\u0440\u0438\u0442\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 \u043F\u043E \u0448\u0430\u0433\u0430\u043C. \u0412\u0441\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u043E\u0441\u0442\u0430\u043D\u0443\u0442\u0441\u044F \u0432 \u044D\u0442\u043E\u043C \u0445\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0435." });
+    const clients = listSavedClientNames(this.app, this.plugin.settings.workoutsFolder);
+    new import_obsidian.Setting(contentEl).setName("\u0414\u043B\u044F \u043A\u043E\u0433\u043E").setDesc("\xAB\u0421\u0435\u0431\u0435\xBB \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043A\u0443 \u0432 \u043E\u0434\u043D\u043E\u0438\u043C\u0451\u043D\u043D\u0443\u044E \u043F\u0430\u043F\u043A\u0443. \u041A\u043B\u0438\u0435\u043D\u0442\u044B \u0431\u0435\u0440\u0443\u0442\u0441\u044F \u0438\u0437 \u0443\u0436\u0435 \u0441\u043E\u0437\u0434\u0430\u043D\u043D\u044B\u0445 \u043F\u0430\u043F\u043E\u043A \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043E\u043A.").addDropdown((dropdown) => {
+      dropdown.addOption("self", "\u0421\u0435\u0431\u0435");
+      clients.forEach((name) => dropdown.addOption(`client:${name}`, name));
+      dropdown.addOption("new", "\u041D\u043E\u0432\u044B\u0439 \u043A\u043B\u0438\u0435\u043D\u0442\u2026");
+      dropdown.setValue(this.owner).onChange((value) => {
+        this.owner = value;
+        this.render();
+      });
+    });
+    if (this.owner === "new") {
+      new import_obsidian.Setting(contentEl).setName("\u0418\u043C\u044F \u043A\u043B\u0438\u0435\u043D\u0442\u0430").addText((text) => text.setPlaceholder("\u041D\u0430\u043F\u0440\u0438\u043C\u0435\u0440, \u0410\u043D\u043D\u0430").setValue(this.newClient).onChange((value) => {
+        this.newClient = value;
+      }));
+    }
+    new import_obsidian.Setting(contentEl).setName("\u0414\u0430\u0442\u0430").addText((text) => text.setPlaceholder("\u0413\u0413\u0413\u0413-\u041C\u041C-\u0414\u0414").setValue(this.date).onChange((value) => {
+      this.date = value.trim();
+    }));
+    new import_obsidian.Setting(contentEl).setName("\u0412\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435").addDropdown((dropdown) => dropdown.addOption("zero", "ZERO").addOption("static", "ON / \u0441\u0442\u0430\u0442\u0438\u043A\u0430").addOption("surya", "\u0421\u0443\u0440\u044C\u044F \u041D\u0430\u043C\u0430\u0441\u043A\u0430\u0440").setValue(this.warmupType).onChange((value) => {
+      this.warmupType = value;
+      if (value === "surya" && this.warmupName === "ON 10") this.warmupName = "\u0421\u0443\u0440\u044C\u044F \u041D\u0430\u043C\u0430\u0441\u043A\u0430\u0440 1";
+      this.render();
+    }));
+    if (this.warmupType === "zero") {
+      new import_obsidian.Setting(contentEl).setName("\u041D\u043E\u043C\u0435\u0440\u0430 ZERO").setDesc("\u0427\u0435\u0440\u0435\u0437 \u0437\u0430\u043F\u044F\u0442\u0443\u044E, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: 9, 3, 1.").addText((text) => text.setPlaceholder("9, 3, 1").setValue(this.zeroNumbers).onChange((value) => {
+        this.zeroNumbers = value;
+      }));
+    } else {
+      new import_obsidian.Setting(contentEl).setName(this.warmupType === "surya" ? "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0421\u0443\u0440\u044C\u0438" : "\u041D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 ON").addText((text) => text.setValue(this.warmupName).onChange((value) => {
+        this.warmupName = value;
+      }));
+    }
+    new import_obsidian.Setting(contentEl).setName("\u0420\u0435\u0436\u0438\u043C \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F").setDesc("\u041D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: 4\u04458 \u0438\u043B\u0438 8 \u043A\u0440\u0443\u0433\u043E\u0432.").addText((text) => text.setPlaceholder("4\u04458").setValue(this.repetitions).onChange((value) => {
+      this.repetitions = value;
+    }));
+    contentEl.createEl("h3", { text: "\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B" });
+    this.algorithms.forEach((algorithm, index) => this.renderAlgorithm(contentEl, algorithm, index));
+    new import_obsidian.Setting(contentEl).addButton((button) => button.setButtonText("\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u043C").onClick(() => {
+      this.algorithms.push({ set: "F1", name: "", zone: "", mode: "" });
+      this.render();
+    }));
+    new import_obsidian.Setting(contentEl).setDesc("\u041F\u043E\u0441\u043B\u0435 \u044D\u0442\u043E\u0433\u043E \u043F\u043B\u0430\u0433\u0438\u043D \u043D\u0430\u0439\u0434\u0451\u0442 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0435 \u0441\u0445\u0435\u043C\u044B \u0438 \u043F\u043E \u043E\u0434\u043D\u043E\u0439 \u043F\u043E\u043F\u0440\u043E\u0441\u0438\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u043E\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0435.").addButton((button) => button.setButtonText("\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B").setCta().onClick(() => this.openMaterialCheck()));
+  }
+  renderAlgorithm(container, algorithm, index) {
+    const setting = new import_obsidian.Setting(container).setName(`${index + 1}. ${algorithm.name || "\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C"}`);
+    setting.addDropdown((dropdown) => dropdown.addOption("F1", "F1").addOption("F2", "F2").addOption("F3", "F3").addOption("LITE", "LITE").setValue(algorithm.set).onChange((value) => {
+      algorithm.set = value;
+      algorithm.name = "";
+      this.render();
+    }));
+    setting.addButton((button) => button.setButtonText(algorithm.name || "\u0412\u044B\u0431\u0440\u0430\u0442\u044C").onClick(() => new AlgorithmNameSuggestModal(this.app, YOGA_ALGORITHMS[algorithm.set] || [], (name) => {
+      algorithm.name = name;
+      this.render();
+    }).open()));
+    setting.addExtraButton((button) => button.setIcon("trash").setTooltip("\u0423\u0431\u0440\u0430\u0442\u044C \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u043C").onClick(() => {
+      this.algorithms.splice(index, 1);
+      this.render();
+    }));
+    new import_obsidian.Setting(container).setDesc("\u0417\u043E\u043D\u0430 \u0438 \u0440\u0435\u0436\u0438\u043C").addDropdown((dropdown) => dropdown.addOption("", "\u0411\u0435\u0437 \u0437\u043E\u043D\u044B").addOption("\u{1F53C}", "\u{1F53C}").addOption("\u{1F53D}", "\u{1F53D}").addOption("\u23FA\uFE0F", "\u23FA\uFE0F").setValue(algorithm.zone).onChange((value) => {
+      algorithm.zone = value;
+    })).addText((text) => text.setPlaceholder("\u0420\u0435\u0436\u0438\u043C: 1\u04458").setValue(algorithm.mode).onChange((value) => {
+      algorithm.mode = value;
+    }));
+  }
+  openMaterialCheck() {
+    const client = this.owner === "new" ? safeFolderName(this.newClient) : this.owner.startsWith("client:") ? this.owner.slice("client:".length) : "";
+    const sequence = [...this.zeroNumbers.matchAll(/\d+/g)].map((match) => Number.parseInt(match[0], 10));
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(this.date)) return new import_obsidian.Notice("\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0434\u0430\u0442\u0443 \u0432 \u0444\u043E\u0440\u043C\u0430\u0442\u0435 \u0413\u0413\u0413\u0413-\u041C\u041C-\u0414\u0414.");
+    if (this.warmupType === "zero" && !sequence.length) return new import_obsidian.Notice("\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0445\u043E\u0442\u044F \u0431\u044B \u043E\u0434\u0438\u043D \u043D\u043E\u043C\u0435\u0440 ZERO.");
+    if (this.warmupType !== "zero" && !this.warmupName.trim()) return new import_obsidian.Notice("\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F.");
+    if (this.algorithms.some((item) => !item.name)) return new import_obsidian.Notice("\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u0430.");
+    const warmup = this.warmupType === "zero" ? { type: "zero", name: "ZERO", sequence, repetitions: this.repetitions.trim() } : { type: this.warmupType, name: this.warmupName.trim(), sequence: [], repetitions: this.repetitions.trim() };
+    const text = manualWorkoutText({ date: this.date, client, warmup, algorithms: this.algorithms });
+    this.close();
+    new WorkoutImportModal(this.app, this.plugin, text).open();
+  }
+  onClose() {
+    this.contentEl.empty();
   }
 };
 var WorkoutImportModal = class extends import_obsidian.Modal {
@@ -737,6 +888,11 @@ var YogaWorkoutImporterPlugin = class extends import_obsidian.Plugin {
       id: "open-workout-importer",
       name: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0438\u043C\u043F\u043E\u0440\u0442\u0451\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438",
       callback: () => new WorkoutImportModal(this.app, this, "").open()
+    });
+    this.addCommand({
+      id: "record-workout-manually",
+      name: "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443",
+      callback: () => new ManualWorkoutModal(this.app, this).open()
     });
     this.addSettingTab(new YogaWorkoutSettingTab(this.app, this));
   }
