@@ -497,7 +497,7 @@ var DEFAULT_SETTINGS = {
   workoutsFolder: "\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043E\u043A/\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438",
   materialMap: {}
 };
-var PLUGIN_VERSION = "0.8.1";
+var PLUGIN_VERSION = "0.10.0-beta.1";
 function cleanFolderPath(value, fallback) {
   const normalized = (0, import_obsidian.normalizePath)(String(value || "").trim().replace(/^\/+|\/+$/g, ""));
   return normalized || fallback;
@@ -552,23 +552,67 @@ function manualWorkoutTitle(warmup, algorithms) {
   const algorithmParts = algorithms.map((item) => `${item.name}${item.mode ? ` \u2014 ${item.mode}` : ""}`);
   return [warmupPart, ...algorithmParts].filter(Boolean).join(", ") || "\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0430 Yoga";
 }
-function manualWorkoutText({ date, client, warmup, algorithms }) {
-  const title = manualWorkoutTitle(warmup, algorithms);
+function manualWorkoutText({ date, client, warmup, algorithms, title: titleOverride = "", metronome = "20", level = "", comment = "" }) {
+  const title = String(titleOverride).trim() || manualWorkoutTitle(warmup, algorithms);
   const warmupText = warmup.type === "zero" ? `\u{1F94C} **ZERO** ( ${warmup.sequence.join(", ")} )${warmup.repetitions ? ` \u043D\u0430 **${warmup.repetitions}**` : ""}` : `${warmup.type === "surya" ? "\u2600\uFE0F" : "\u{1F5FF}"} **${warmup.name}**${warmup.repetitions ? ` \u043D\u0430 **${warmup.repetitions}**` : ""}`;
   const setEmoji2 = { F1: "1\uFE0F\u20E3", F2: "2\uFE0F\u20E3", F3: "3\uFE0F\u20E3", LITE: "\u23FA\uFE0F" };
   const lines = [
     `**\xAB${title}\xBB**`,
     `\u2022 **\u0414\u0430\u0442\u0430**: ${date}`,
-    "\u2022 **\u041C\u0435\u0442\u0440\u043E\u043D\u043E\u043C**: 20",
+    level ? `\u2022 **\u0423\u0440\u043E\u0432\u0435\u043D\u044C**: ${level}` : "",
+    `\u2022 **\u041C\u0435\u0442\u0440\u043E\u043D\u043E\u043C**: ${metronome || "20"}`,
     `\u2022 **ON**: ${warmupText}`,
     "\u2022 **\u0410\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u044B**:"
   ];
+  if (!lines[2]) lines.splice(2, 1);
   if (!algorithms.length) lines.push("\u043D\u0435\u0442");
   algorithms.forEach((item, index) => {
     lines.push(`${index + 1}) ${setEmoji2[item.set] || ""} **${item.name}**${item.zone ? ` ${item.zone}` : ""}${item.mode ? ` \u2014 **${item.mode}**` : ""}`.trim());
   });
   if (client) lines.push(`\u2022 **\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439**: \u041A\u043B\u0438\u0435\u043D\u0442: ${client}`);
+  else if (comment) lines.push(`\u2022 **\u041A\u043E\u043C\u043C\u0435\u043D\u0442\u0430\u0440\u0438\u0439**: ${comment}`);
   return lines.join("\n");
+}
+function decodeBase64UrlJson(value = "") {
+  const normalized = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+  if (!normalized || !/^[A-Za-z0-9+/]*={0,2}$/u.test(normalized)) throw new Error("\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u0444\u043E\u0440\u043C\u0430\u0442 \u0441\u0441\u044B\u043B\u043A\u0438.");
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+function handoffWorkoutText(encodedPayload = "") {
+  const payload = decodeBase64UrlJson(encodedPayload);
+  if (!payload || payload.v !== 1 || !payload.warmup || !Array.isArray(payload.algorithms)) {
+    throw new Error("\u0421\u0441\u044B\u043B\u043A\u0430 \u043D\u0430 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 \u0443\u0441\u0442\u0430\u0440\u0435\u043B\u0430 \u0438\u043B\u0438 \u043F\u043E\u0432\u0440\u0435\u0436\u0434\u0435\u043D\u0430.");
+  }
+  const warmupType = ["zero", "static", "surya"].includes(payload.warmup.type) ? payload.warmup.type : "";
+  const warmup = {
+    type: warmupType,
+    name: String(payload.warmup.name || (warmupType === "zero" ? "ZERO" : "")).trim(),
+    sequence: Array.isArray(payload.warmup.sequence) ? payload.warmup.sequence.map(Number).filter((number) => Number.isInteger(number) && number >= 0 && number <= 999) : [],
+    repetitions: String(payload.warmup.repetitions || "").trim().slice(0, 30)
+  };
+  if (!warmup.type || !warmup.name || warmup.type === "zero" && !warmup.sequence.length) {
+    throw new Error("\u0412 \u0441\u0441\u044B\u043B\u043A\u0435 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u043E\u0435 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435.");
+  }
+  const algorithms = payload.algorithms.slice(0, 4).map((item) => ({
+    set: ["F1", "F2", "F3", "LITE"].includes(item?.set) ? item.set : "",
+    name: String(item?.name || "").trim().slice(0, 100),
+    zone: ["\u{1F53C}", "\u{1F53D}", "\u23FA\uFE0F"].includes(item?.zone) ? item.zone : "",
+    mode: String(item?.mode || "").trim().slice(0, 40)
+  })).filter((item) => item.name && item.set);
+  if (algorithms.length !== payload.algorithms.length) throw new Error("\u0412 \u0441\u0441\u044B\u043B\u043A\u0435 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u043E\u0434\u0438\u043D \u0438\u0437 \u0430\u043B\u0433\u043E\u0440\u0438\u0442\u043C\u043E\u0432.");
+  return manualWorkoutText({
+    title: String(payload.title || "").trim().slice(0, 100),
+    date: String(payload.date || "").match(/\d{4}-\d{2}-\d{2}/u)?.[0] || getTodayIsoDate(),
+    client: String(payload.client || "").trim().slice(0, 100),
+    comment: String(payload.comment || "").trim().slice(0, 300),
+    level: String(payload.level || "").trim().slice(0, 40),
+    metronome: String(payload.metronome || "20").trim().slice(0, 20),
+    warmup,
+    algorithms
+  });
 }
 var MaterialFileSuggestModal = class extends import_obsidian.FuzzySuggestModal {
   constructor(app, files, onChoose) {
@@ -707,10 +751,11 @@ var ManualWorkoutModal = class extends import_obsidian.Modal {
   }
 };
 var WorkoutImportModal = class extends import_obsidian.Modal {
-  constructor(app, plugin, initialText = "") {
+  constructor(app, plugin, initialText = "", options = {}) {
     super(app);
     this.plugin = plugin;
     this.inputText = initialText;
+    this.options = options;
     this.workout = null;
     this.resolution = null;
     this.resultEl = null;
@@ -720,25 +765,27 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.addClass("yoga-import-modal");
-    contentEl.createEl("h2", { text: "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 Yoga" });
+    contentEl.createEl("h2", { text: this.options.handoff ? "\u041F\u0440\u0435\u0434\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438" : "\u0421\u043E\u0431\u0440\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443 Yoga" });
     contentEl.createEl("p", {
-      text: "\u0412\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0446\u0435\u043B\u0438\u043A\u043E\u043C \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0441\u0444\u043E\u0440\u043C\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0439 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0438\u0437 Telegram. \u041E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0430 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u044D\u0442\u043E\u0433\u043E \u0445\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0430."
+      text: this.options.handoff ? "\u0421\u043E\u0441\u0442\u0430\u0432 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043F\u043E\u043B\u0443\u0447\u0435\u043D \u0438\u0437 Telegram. \u0421\u0445\u0435\u043C\u044B \u043D\u0438\u0436\u0435 \u0438\u0449\u0443\u0442\u0441\u044F \u0438 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u044E\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0441\u0440\u0435\u0434\u0438 \u0444\u0430\u0439\u043B\u043E\u0432 \u044D\u0442\u043E\u0433\u043E \u0445\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0430." : "\u0412\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0446\u0435\u043B\u0438\u043A\u043E\u043C \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0441\u0444\u043E\u0440\u043C\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0439 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u0438\u0437 Telegram. \u041E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0430 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u043D\u0443\u0442\u0440\u0438 \u044D\u0442\u043E\u0433\u043E \u0445\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0430."
     });
-    const checkSetting = new import_obsidian.Setting(contentEl).setDesc("\u041F\u043E\u0441\u043B\u0435 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0442\u0435\u043A\u0441\u0442\u0430 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0443 \u2014 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B \u0431\u0443\u0434\u0443\u0442 \u043D\u0430\u0439\u0434\u0435\u043D\u044B \u0434\u043E \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0438.").addButton((button) => button.setButtonText("\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B").setCta().onClick(() => this.preview()));
-    checkSetting.settingEl.addClass("yoga-import-primary-action");
-    const textArea = contentEl.createEl("textarea", {
-      cls: "yoga-import-textarea",
-      attr: { placeholder: "\u0412\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u2026" }
-    });
-    textArea.value = this.inputText;
-    textArea.addEventListener("input", () => {
-      this.inputText = textArea.value;
-      this.workout = null;
-      this.resolution = null;
-      this.resultEl.empty();
-      this.createSetting?.settingEl.remove();
-      this.createSetting = null;
-    });
+    if (!this.options.handoff) {
+      const checkSetting = new import_obsidian.Setting(contentEl).setDesc("\u041F\u043E\u0441\u043B\u0435 \u0432\u0441\u0442\u0430\u0432\u043A\u0438 \u0442\u0435\u043A\u0441\u0442\u0430 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0443 \u2014 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B \u0431\u0443\u0434\u0443\u0442 \u043D\u0430\u0439\u0434\u0435\u043D\u044B \u0434\u043E \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0438.").addButton((button) => button.setButtonText("\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B").setCta().onClick(() => this.preview()));
+      checkSetting.settingEl.addClass("yoga-import-primary-action");
+      const textArea = contentEl.createEl("textarea", {
+        cls: "yoga-import-textarea",
+        attr: { placeholder: "\u0412\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438\u2026" }
+      });
+      textArea.value = this.inputText;
+      textArea.addEventListener("input", () => {
+        this.inputText = textArea.value;
+        this.workout = null;
+        this.resolution = null;
+        this.resultEl.empty();
+        this.createSetting?.settingEl.remove();
+        this.createSetting = null;
+      });
+    }
     this.resultEl = contentEl.createDiv({ cls: "yoga-import-results" });
     if (this.inputText.trim()) this.preview();
   }
@@ -766,6 +813,7 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
       cls: `yoga-status ${this.resolution.missing.length ? "yoga-status-warning" : "yoga-status-success"}`,
       text: total ? `\u041C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B: \u043D\u0430\u0439\u0434\u0435\u043D\u043E ${found} \u0438\u0437 ${total}.` : "\u0414\u043B\u044F \u044D\u0442\u043E\u0439 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0435 \u0441\u0445\u0435\u043C\u044B \u043D\u0435 \u0442\u0440\u0435\u0431\u0443\u044E\u0442\u0441\u044F."
     });
+    if (this.options.handoff && total) this.renderLocalPreviews();
     if (this.resolution.missing.length) {
       const item = this.resolution.missing[0];
       const description = item.reason === "ambiguous" ? `\u0412 \u043F\u0430\u043F\u043A\u0435 \xAB${item.expectedFolder}\xBB \u043D\u0430\u0439\u0434\u0435\u043D\u043E \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0445\u043E\u0436\u0438\u0445 \u0444\u0430\u0439\u043B\u043E\u0432 \u2014 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043D\u0443\u0436\u043D\u044B\u0439.` : `\u0424\u0430\u0439\u043B \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0432 \u043F\u0430\u043F\u043A\u0435 \xAB${item.expectedFolder}\xBB.`;
@@ -811,6 +859,27 @@ var WorkoutImportModal = class extends import_obsidian.Modal {
         this.creating = false;
       }
     }));
+  }
+  renderLocalPreviews() {
+    const gallery = this.resultEl.createDiv({ cls: "yoga-local-preview-gallery" });
+    gallery.createEl("h4", { text: "\u041B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439 \u043F\u0440\u0435\u0434\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440" });
+    this.workout.requiredMaterials.forEach((requirement) => {
+      const match = this.resolution.matches.get(requirement.id);
+      const card = gallery.createDiv({ cls: "yoga-local-preview-card" });
+      card.createEl("strong", { text: requirement.displayName });
+      if (!match?.file) {
+        card.createDiv({ cls: "yoga-local-preview-missing", text: "\u0424\u0430\u0439\u043B \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D" });
+        return;
+      }
+      const file = match.file;
+      if (String(file.extension || "").toLocaleLowerCase("en") === "pdf") {
+        card.createEl("a", { text: `\u041E\u0442\u043A\u0440\u044B\u0442\u044C PDF: ${file.name}`, href: this.app.vault.getResourcePath(file) });
+      } else {
+        card.createEl("img", {
+          attr: { src: this.app.vault.getResourcePath(file), alt: requirement.displayName }
+        });
+      }
+    });
   }
   pickMaterialFromDevice(item, button) {
     const input = this.contentEl.doc.createElement("input");
@@ -894,6 +963,14 @@ var YogaWorkoutImporterPlugin = class extends import_obsidian.Plugin {
       id: "record-workout-manually",
       name: "\u0417\u0430\u043F\u0438\u0441\u0430\u0442\u044C \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0443",
       callback: () => new ManualWorkoutModal(this.app, this).open()
+    });
+    this.registerObsidianProtocolHandler("yoga-workout-importer", (params) => {
+      try {
+        const text = handoffWorkoutText(params.workout);
+        new WorkoutImportModal(this.app, this, text, { handoff: true }).open();
+      } catch (error) {
+        new import_obsidian.Notice(`\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0435\u0434\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440: ${error.message}`);
+      }
     });
     this.addSettingTab(new YogaWorkoutSettingTab(this.app, this));
   }

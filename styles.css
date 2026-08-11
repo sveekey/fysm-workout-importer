@@ -54,3 +54,34 @@
 .yoga-hidden-file-input {
   display: none;
 }
+
+.yoga-local-preview-gallery {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.yoga-local-preview-gallery h4 {
+  margin: 0;
+}
+
+.yoga-local-preview-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+}
+
+.yoga-local-preview-card img {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  object-fit: contain;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.yoga-local-preview-missing {
+  color: var(--text-muted);
+}

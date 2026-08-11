@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS = {
   materialMap: {}
 };
 
-const PLUGIN_VERSION = "0.8.1";
+const PLUGIN_VERSION = "0.10.0-beta.1";
 
 function cleanFolderPath(value, fallback) {
   const normalized = normalizePath(String(value || "").trim().replace(/^\/+|\/+$/g, ""));
@@ -91,8 +91,8 @@ function manualWorkoutTitle(warmup, algorithms) {
   return [warmupPart, ...algorithmParts].filter(Boolean).join(", ") || "Тренировка Yoga";
 }
 
-function manualWorkoutText({ date, client, warmup, algorithms }) {
-  const title = manualWorkoutTitle(warmup, algorithms);
+function manualWorkoutText({ date, client, warmup, algorithms, title: titleOverride = "", metronome = "20", level = "", comment = "" }) {
+  const title = String(titleOverride).trim() || manualWorkoutTitle(warmup, algorithms);
   const warmupText = warmup.type === "zero"
     ? `🥌 **ZERO** ( ${warmup.sequence.join(", ")} )${warmup.repetitions ? ` на **${warmup.repetitions}**` : ""}`
     : `${warmup.type === "surya" ? "☀️" : "🗿"} **${warmup.name}**${warmup.repetitions ? ` на **${warmup.repetitions}**` : ""}`;
@@ -100,16 +100,67 @@ function manualWorkoutText({ date, client, warmup, algorithms }) {
   const lines = [
     `**«${title}»**`,
     `• **Дата**: ${date}`,
-    "• **Метроном**: 20",
+    level ? `• **Уровень**: ${level}` : "",
+    `• **Метроном**: ${metronome || "20"}`,
     `• **ON**: ${warmupText}`,
     "• **Алгоритмы**:"
   ];
+  if (!lines[2]) lines.splice(2, 1);
   if (!algorithms.length) lines.push("нет");
   algorithms.forEach((item, index) => {
     lines.push(`${index + 1}) ${setEmoji[item.set] || ""} **${item.name}**${item.zone ? ` ${item.zone}` : ""}${item.mode ? ` — **${item.mode}**` : ""}`.trim());
   });
   if (client) lines.push(`• **Комментарий**: Клиент: ${client}`);
+  else if (comment) lines.push(`• **Комментарий**: ${comment}`);
   return lines.join("\n");
+}
+
+function decodeBase64UrlJson(value = "") {
+  const normalized = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+  if (!normalized || !/^[A-Za-z0-9+/]*={0,2}$/u.test(normalized)) throw new Error("Неверный формат ссылки.");
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function handoffWorkoutText(encodedPayload = "") {
+  const payload = decodeBase64UrlJson(encodedPayload);
+  if (!payload || payload.v !== 1 || !payload.warmup || !Array.isArray(payload.algorithms)) {
+    throw new Error("Ссылка на тренировку устарела или повреждена.");
+  }
+
+  const warmupType = ["zero", "static", "surya"].includes(payload.warmup.type) ? payload.warmup.type : "";
+  const warmup = {
+    type: warmupType,
+    name: String(payload.warmup.name || (warmupType === "zero" ? "ZERO" : "")).trim(),
+    sequence: Array.isArray(payload.warmup.sequence)
+      ? payload.warmup.sequence.map(Number).filter(number => Number.isInteger(number) && number >= 0 && number <= 999)
+      : [],
+    repetitions: String(payload.warmup.repetitions || "").trim().slice(0, 30)
+  };
+  if (!warmup.type || !warmup.name || (warmup.type === "zero" && !warmup.sequence.length)) {
+    throw new Error("В ссылке не найдено корректное включение.");
+  }
+
+  const algorithms = payload.algorithms.slice(0, 4).map(item => ({
+    set: ["F1", "F2", "F3", "LITE"].includes(item?.set) ? item.set : "",
+    name: String(item?.name || "").trim().slice(0, 100),
+    zone: ["🔼", "🔽", "⏺️"].includes(item?.zone) ? item.zone : "",
+    mode: String(item?.mode || "").trim().slice(0, 40)
+  })).filter(item => item.name && item.set);
+  if (algorithms.length !== payload.algorithms.length) throw new Error("В ссылке не найден один из алгоритмов.");
+
+  return manualWorkoutText({
+    title: String(payload.title || "").trim().slice(0, 100),
+    date: String(payload.date || "").match(/\d{4}-\d{2}-\d{2}/u)?.[0] || getTodayIsoDate(),
+    client: String(payload.client || "").trim().slice(0, 100),
+    comment: String(payload.comment || "").trim().slice(0, 300),
+    level: String(payload.level || "").trim().slice(0, 40),
+    metronome: String(payload.metronome || "20").trim().slice(0, 20),
+    warmup,
+    algorithms
+  });
 }
 
 class MaterialFileSuggestModal extends FuzzySuggestModal {
@@ -328,10 +379,11 @@ class ManualWorkoutModal extends Modal {
 }
 
 class WorkoutImportModal extends Modal {
-  constructor(app, plugin, initialText = "") {
+  constructor(app, plugin, initialText = "", options = {}) {
     super(app);
     this.plugin = plugin;
     this.inputText = initialText;
+    this.options = options;
     this.workout = null;
     this.resolution = null;
     this.resultEl = null;
@@ -342,32 +394,36 @@ class WorkoutImportModal extends Modal {
   onOpen() {
     const { contentEl } = this;
     contentEl.addClass("yoga-import-modal");
-    contentEl.createEl("h2", { text: "Собрать тренировку Yoga" });
+    contentEl.createEl("h2", { text: this.options.handoff ? "Предпросмотр тренировки" : "Собрать тренировку Yoga" });
     contentEl.createEl("p", {
-      text: "Вставьте целиком сообщение сформированной тренировки из Telegram. Обработка выполняется только внутри этого хранилища."
+      text: this.options.handoff
+        ? "Состав тренировки получен из Telegram. Схемы ниже ищутся и открываются только среди файлов этого хранилища."
+        : "Вставьте целиком сообщение сформированной тренировки из Telegram. Обработка выполняется только внутри этого хранилища."
     });
 
-    const checkSetting = new Setting(contentEl)
-      .setDesc("После вставки текста нажмите кнопку — материалы будут найдены до создания заметки.")
-      .addButton(button => button
-        .setButtonText("Проверить материалы")
-        .setCta()
-        .onClick(() => this.preview()));
-    checkSetting.settingEl.addClass("yoga-import-primary-action");
+    if (!this.options.handoff) {
+      const checkSetting = new Setting(contentEl)
+        .setDesc("После вставки текста нажмите кнопку — материалы будут найдены до создания заметки.")
+        .addButton(button => button
+          .setButtonText("Проверить материалы")
+          .setCta()
+          .onClick(() => this.preview()));
+      checkSetting.settingEl.addClass("yoga-import-primary-action");
 
-    const textArea = contentEl.createEl("textarea", {
-      cls: "yoga-import-textarea",
-      attr: { placeholder: "Вставьте сообщение тренировки…" }
-    });
-    textArea.value = this.inputText;
-    textArea.addEventListener("input", () => {
-      this.inputText = textArea.value;
-      this.workout = null;
-      this.resolution = null;
-      this.resultEl.empty();
-      this.createSetting?.settingEl.remove();
-      this.createSetting = null;
-    });
+      const textArea = contentEl.createEl("textarea", {
+        cls: "yoga-import-textarea",
+        attr: { placeholder: "Вставьте сообщение тренировки…" }
+      });
+      textArea.value = this.inputText;
+      textArea.addEventListener("input", () => {
+        this.inputText = textArea.value;
+        this.workout = null;
+        this.resolution = null;
+        this.resultEl.empty();
+        this.createSetting?.settingEl.remove();
+        this.createSetting = null;
+      });
+    }
 
     this.resultEl = contentEl.createDiv({ cls: "yoga-import-results" });
     if (this.inputText.trim()) this.preview();
@@ -398,6 +454,8 @@ class WorkoutImportModal extends Modal {
       cls: `yoga-status ${this.resolution.missing.length ? "yoga-status-warning" : "yoga-status-success"}`,
       text: total ? `Материалы: найдено ${found} из ${total}.` : "Для этой тренировки отдельные схемы не требуются."
     });
+
+    if (this.options.handoff && total) this.renderLocalPreviews();
 
     if (this.resolution.missing.length) {
       const item = this.resolution.missing[0];
@@ -464,6 +522,28 @@ class WorkoutImportModal extends Modal {
             this.creating = false;
           }
         }));
+  }
+
+  renderLocalPreviews() {
+    const gallery = this.resultEl.createDiv({ cls: "yoga-local-preview-gallery" });
+    gallery.createEl("h4", { text: "Локальный предпросмотр" });
+    this.workout.requiredMaterials.forEach(requirement => {
+      const match = this.resolution.matches.get(requirement.id);
+      const card = gallery.createDiv({ cls: "yoga-local-preview-card" });
+      card.createEl("strong", { text: requirement.displayName });
+      if (!match?.file) {
+        card.createDiv({ cls: "yoga-local-preview-missing", text: "Файл не найден" });
+        return;
+      }
+      const file = match.file;
+      if (String(file.extension || "").toLocaleLowerCase("en") === "pdf") {
+        card.createEl("a", { text: `Открыть PDF: ${file.name}`, href: this.app.vault.getResourcePath(file) });
+      } else {
+        card.createEl("img", {
+          attr: { src: this.app.vault.getResourcePath(file), alt: requirement.displayName }
+        });
+      }
+    });
   }
 
   pickMaterialFromDevice(item, button) {
@@ -580,6 +660,14 @@ export default class YogaWorkoutImporterPlugin extends Plugin {
       id: "record-workout-manually",
       name: "Записать тренировку",
       callback: () => new ManualWorkoutModal(this.app, this).open()
+    });
+    this.registerObsidianProtocolHandler("yoga-workout-importer", params => {
+      try {
+        const text = handoffWorkoutText(params.workout);
+        new WorkoutImportModal(this.app, this, text, { handoff: true }).open();
+      } catch (error) {
+        new Notice(`Не удалось открыть предпросмотр: ${error.message}`);
+      }
     });
     this.addSettingTab(new YogaWorkoutSettingTab(this.app, this));
   }
