@@ -50,7 +50,7 @@ function cleanClientName(value = "") {
     .replace(/^[«“"']+|[»”"']+$/gu, "")
     .replace(/[.,;]+$/gu, "")
     .trim();
-  if (!name || name.length > 100 || /^(?:себе|self|тренировка\s+(?:yoga|fysm))$/iu.test(name)) return "";
+  if (!name || name.length > 100 || /^(?:себе|self|тренировка\s+yoga)$/iu.test(name)) return "";
   return name;
 }
 

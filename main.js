@@ -169,7 +169,7 @@ function cleanInline(value = "") {
 }
 function cleanClientName(value = "") {
   const name = cleanInline(value).replace(/^[«“"']+|[»”"']+$/gu, "").replace(/[.,;]+$/gu, "").trim();
-  if (!name || name.length > 100 || /^(?:себе|self|тренировка\s+(?:yoga|fysm))$/iu.test(name)) return "";
+  if (!name || name.length > 100 || /^(?:себе|self|тренировка\s+yoga)$/iu.test(name)) return "";
   return name;
 }
 function extractClientName(comment = "") {
@@ -763,7 +763,7 @@ var YogaWorkoutImporterPlugin = class extends import_obsidian.Plugin {
   async createWorkoutNote(workout, resolution) {
     const outputFolder = cleanFolderPath(this.settings.workoutsFolder, DEFAULT_SETTINGS.workoutsFolder);
     const clientFolder = safeFolderName(workout.client);
-    const ownerFolder = /^(?:тренировка\s+(?:yoga|fysm))$/iu.test(clientFolder) ? "\u0421\u0435\u0431\u0435" : clientFolder || "\u0421\u0435\u0431\u0435";
+    const ownerFolder = /^тренировка\s+yoga$/iu.test(clientFolder) ? "\u0421\u0435\u0431\u0435" : clientFolder || "\u0421\u0435\u0431\u0435";
     const destinationFolder = (0, import_obsidian.normalizePath)(`${outputFolder}/${ownerFolder}`);
     await ensureFolder(this.app.vault, destinationFolder);
     const prefix = workout.date ? `${workout.date} \u2014 ` : "";

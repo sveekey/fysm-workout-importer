@@ -366,7 +366,7 @@ export default class YogaWorkoutImporterPlugin extends Plugin {
   async createWorkoutNote(workout, resolution) {
     const outputFolder = cleanFolderPath(this.settings.workoutsFolder, DEFAULT_SETTINGS.workoutsFolder);
     const clientFolder = safeFolderName(workout.client);
-    const ownerFolder = /^(?:тренировка\s+(?:yoga|fysm))$/iu.test(clientFolder) ? "Себе" : (clientFolder || "Себе");
+    const ownerFolder = /^тренировка\s+yoga$/iu.test(clientFolder) ? "Себе" : (clientFolder || "Себе");
     const destinationFolder = normalizePath(`${outputFolder}/${ownerFolder}`);
     await ensureFolder(this.app.vault, destinationFolder);
 
