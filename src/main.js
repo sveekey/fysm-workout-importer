@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS = {
   materialMap: {}
 };
 
-const PLUGIN_VERSION = "0.10.0-beta.2";
+const PLUGIN_VERSION = "0.10.0";
 
 function cleanFolderPath(value, fallback) {
   const normalized = normalizePath(String(value || "").trim().replace(/^\/+|\/+$/g, ""));
