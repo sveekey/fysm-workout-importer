@@ -26,8 +26,8 @@ function fakeApp(paths) {
 
 test("matches exact material names only inside the configured library", () => {
   const app = fakeApp([
-    "Конструктор тренировок/Материалы/ZERO/ZERO 12.png",
-    "Конструктор тренировок/Материалы/F2/Активация центра.jpg",
+    "Мои тренировки/Материалы/ZERO/ZERO 12.png",
+    "Мои тренировки/Материалы/F2/Активация центра.jpg",
     "Другая папка/Струна.png"
   ]);
   const workout = {
@@ -39,20 +39,20 @@ test("matches exact material names only inside the configured library", () => {
   };
 
   const result = resolveWorkoutMaterials(app, workout, {
-    libraryFolder: "Конструктор тренировок/Материалы",
+    libraryFolder: "Мои тренировки/Материалы",
     materialMap: {}
   });
 
-  assert.equal(result.matches.get("warmup:zero 12").file.path, "Конструктор тренировок/Материалы/ZERO/ZERO 12.png");
-  assert.equal(result.matches.get("algorithm:активация центра").file.path, "Конструктор тренировок/Материалы/F2/Активация центра.jpg");
+  assert.equal(result.matches.get("warmup:zero 12").file.path, "Мои тренировки/Материалы/ZERO/ZERO 12.png");
+  assert.equal(result.matches.get("algorithm:активация центра").file.path, "Мои тренировки/Материалы/F2/Активация центра.jpg");
   assert.deepEqual(result.missing.map(item => item.requirement.displayName), ["Струна"]);
-  assert.equal(result.missing[0].expectedFolder, "Конструктор тренировок/Материалы/F1");
+  assert.equal(result.missing[0].expectedFolder, "Мои тренировки/Материалы/F1");
 });
 
 test("prefers a manual local mapping", () => {
   const app = fakeApp([
-    "Конструктор тренировок/Материалы/F1/Мой скриншот.png",
-    "Конструктор тренировок/Материалы/F1/Струна.png"
+    "Мои тренировки/Материалы/F1/Мой скриншот.png",
+    "Мои тренировки/Материалы/F1/Струна.png"
   ]);
   const workout = {
     requiredMaterials: [
@@ -61,16 +61,16 @@ test("prefers a manual local mapping", () => {
   };
 
   const result = resolveWorkoutMaterials(app, workout, {
-    libraryFolder: "Конструктор тренировок/Материалы",
-    materialMap: { "algorithm:струна": "Конструктор тренировок/Материалы/F1/Мой скриншот.png" }
+    libraryFolder: "Мои тренировки/Материалы",
+    materialMap: { "algorithm:струна": "Мои тренировки/Материалы/F1/Мой скриншот.png" }
   });
 
-  assert.equal(result.matches.get("algorithm:струна").file.path, "Конструктор тренировок/Материалы/F1/Мой скриншот.png");
+  assert.equal(result.matches.get("algorithm:струна").file.path, "Мои тренировки/Материалы/F1/Мой скриншот.png");
   assert.equal(result.matches.get("algorithm:струна").source, "manual");
 });
 
 test("does not accept an algorithm file from the wrong level folder", () => {
-  const app = fakeApp(["Конструктор тренировок/Материалы/F2/Струна.png"]);
+  const app = fakeApp(["Мои тренировки/Материалы/F2/Струна.png"]);
   const workout = {
     requiredMaterials: [
       { id: "algorithm:струна", kind: "algorithm", displayName: "Струна", set: "F1" }
@@ -78,19 +78,19 @@ test("does not accept an algorithm file from the wrong level folder", () => {
   };
 
   const result = resolveWorkoutMaterials(app, workout, {
-    libraryFolder: "Конструктор тренировок/Материалы",
+    libraryFolder: "Мои тренировки/Материалы",
     materialMap: {}
   });
 
   assert.equal(result.matches.size, 0);
-  assert.equal(result.missing[0].expectedFolder, "Конструктор тренировок/Материалы/F1");
+  assert.equal(result.missing[0].expectedFolder, "Мои тренировки/Материалы/F1");
 });
 
 test("routes Surya, ZERO and ON to separate sibling folders", () => {
   const app = fakeApp([
-    "Конструктор тренировок/Материалы/SURYA/Сурья Намаскар 1.png",
-    "Конструктор тренировок/Материалы/ZERO/ZERO 12.png",
-    "Конструктор тренировок/Материалы/ON/ON 10.png"
+    "Мои тренировки/Материалы/SURYA/Сурья Намаскар 1.png",
+    "Мои тренировки/Материалы/ZERO/ZERO 12.png",
+    "Мои тренировки/Материалы/ON/ON 10.png"
   ]);
   const workout = {
     requiredMaterials: [
@@ -101,11 +101,11 @@ test("routes Surya, ZERO and ON to separate sibling folders", () => {
   };
 
   const result = resolveWorkoutMaterials(app, workout, {
-    libraryFolder: "Конструктор тренировок/Материалы",
+    libraryFolder: "Мои тренировки/Материалы",
     materialMap: {}
   });
 
-  assert.equal(result.matches.get("warmup:сурья намаскар 1").file.path, "Конструктор тренировок/Материалы/SURYA/Сурья Намаскар 1.png");
-  assert.equal(result.matches.get("warmup:zero 12").file.path, "Конструктор тренировок/Материалы/ZERO/ZERO 12.png");
-  assert.equal(result.matches.get("warmup:on 10").file.path, "Конструктор тренировок/Материалы/ON/ON 10.png");
+  assert.equal(result.matches.get("warmup:сурья намаскар 1").file.path, "Мои тренировки/Материалы/SURYA/Сурья Намаскар 1.png");
+  assert.equal(result.matches.get("warmup:zero 12").file.path, "Мои тренировки/Материалы/ZERO/ZERO 12.png");
+  assert.equal(result.matches.get("warmup:on 10").file.path, "Мои тренировки/Материалы/ON/ON 10.png");
 });

@@ -13,12 +13,12 @@ import { listMaterialFiles, resolveWorkoutMaterials } from "./library.js";
 import { YOGA_ALGORITHMS } from "./catalog.js";
 
 const DEFAULT_SETTINGS = {
-  libraryFolder: "Конструктор тренировок/Материалы",
-  workoutsFolder: "Конструктор тренировок/Тренировки",
+  libraryFolder: "Мои тренировки/Материалы",
+  workoutsFolder: "Мои тренировки/Тренировки",
   materialMap: {}
 };
 
-const PLUGIN_VERSION = "0.10.0";
+const PLUGIN_VERSION = "0.10.1";
 
 function cleanFolderPath(value, fallback) {
   const normalized = normalizePath(String(value || "").trim().replace(/^\/+|\/+$/g, ""));

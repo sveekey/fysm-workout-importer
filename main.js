@@ -493,11 +493,11 @@ function resolveWorkoutMaterials(app, workout, settings) {
 
 // src/main.js
 var DEFAULT_SETTINGS = {
-  libraryFolder: "\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043E\u043A/\u041C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B",
-  workoutsFolder: "\u041A\u043E\u043D\u0441\u0442\u0440\u0443\u043A\u0442\u043E\u0440 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043E\u043A/\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438",
+  libraryFolder: "\u041C\u043E\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438/\u041C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B",
+  workoutsFolder: "\u041C\u043E\u0438 \u0442\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438/\u0422\u0440\u0435\u043D\u0438\u0440\u043E\u0432\u043A\u0438",
   materialMap: {}
 };
-var PLUGIN_VERSION = "0.10.0";
+var PLUGIN_VERSION = "0.10.1";
 function cleanFolderPath(value, fallback) {
   const normalized = (0, import_obsidian.normalizePath)(String(value || "").trim().replace(/^\/+|\/+$/g, ""));
   return normalized || fallback;
